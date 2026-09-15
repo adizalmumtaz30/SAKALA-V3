@@ -1,6 +1,10 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getPrimarySchool } from "@/lib/data-access/school";
 import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
+import { listTeachers } from "@/lib/data-access/teacher";
+import { listSubjects } from "@/lib/data-access/subject";
+import { listClassesForYear } from "@/lib/data-access/class";
 import {
   CreateSchoolForm,
   CreateAcademicYearForm,
@@ -47,12 +51,48 @@ export default async function BerandaPage() {
     );
   }
 
+  const [teachers, subjects, classes] = await Promise.all([
+    listTeachers(supabase),
+    listSubjects(supabase),
+    listClassesForYear(supabase, academicYear.id),
+  ]);
+
   const checklist = [
-    { label: "Data guru", ready: false },
-    { label: "Data mata pelajaran", ready: false },
-    { label: "Data kelas", ready: false },
-    { label: "Beban mengajar", ready: false },
-    { label: "Struktur waktu", ready: false },
+    {
+      label: "Data guru",
+      ready: teachers.some((t) => t.status === "active"),
+      href: "/guru",
+      count: teachers.length,
+      builtYet: true,
+    },
+    {
+      label: "Data mata pelajaran",
+      ready: subjects.some((s) => s.status === "active"),
+      href: "/mapel",
+      count: subjects.length,
+      builtYet: true,
+    },
+    {
+      label: "Data kelas",
+      ready: classes.some((c) => c.status === "active"),
+      href: "/kelas",
+      count: classes.length,
+      builtYet: true,
+    },
+    {
+      label: "Beban mengajar",
+      ready: false,
+      href: "/beban-mengajar",
+      count: 0,
+      builtYet: false,
+    },
+    {
+      label: "Struktur waktu",
+      ready: false,
+      href: "/jadwal",
+      count: 0,
+      builtYet: false,
+    },
   ];
 
   return (
@@ -68,17 +108,24 @@ export default async function BerandaPage() {
         </h2>
         <ul className="mt-3 space-y-2">
           {checklist.map((item) => (
-            <li
-              key={item.label}
-              className="flex items-center gap-2.5 text-[13px] text-ink-muted"
-            >
+            <li key={item.label} className="flex items-center gap-2.5 text-[13px]">
               <span
                 className={`h-1.5 w-1.5 rounded-full ${
                   item.ready ? "bg-status-ready" : "bg-status-incomplete"
                 }`}
               />
-              {item.label}
-              {!item.ready && (
+              {item.builtYet ? (
+                <Link href={item.href} className="text-ink-muted hover:text-ink">
+                  {item.label}
+                </Link>
+              ) : (
+                <span className="text-ink-muted">{item.label}</span>
+              )}
+              {item.builtYet ? (
+                <span className="text-[11px] text-ink-faint">
+                  · {item.count} data
+                </span>
+              ) : (
                 <span className="text-[11px] text-ink-faint">
                   · modul segera dibangun
                 </span>
