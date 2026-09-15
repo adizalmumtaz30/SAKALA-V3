@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+/*
+  SAKALA V3 — Design Tokens
+  Direction: Quiet Luxury Digital Workspace (Controlled Opulence)
+  Dark is the primary mode. Light is supported but secondary.
+  Source: SAKALA V3 Master Blueprint, Phase 10.1–10.3 (locked).
+*/
+
+:root {
+  /* Layered material system (dark) */
+  --canvas: #121418;
+  --sidebar: #1a1d24;
+  --surface: #22262f;
+  --surface-elevated: #282d38;
+  --surface-overlay: #2e3441;
+  --surface-focus: #333a49;
+
+  /* Typography */
+  --ink: #e2e4e9;
+  --ink-muted: #9aa1ae;
+  --ink-faint: #6b7280;
+
+  /* Hairline */
+  --hairline: rgba(226, 228, 233, 0.08);
+  --hairline-strong: rgba(226, 228, 233, 0.14);
+
+  /* Accent */
+  --accent-teal: #2dd4bf;
+  --accent-teal-ink: #0b1f1c;
+  --champagne: #c9a876;
+
+  /* Semantic status — muted, never neon */
+  --status-ready: #4ade80;
+  --status-incomplete: #eab308;
+  --status-attention: #f0975a;
+  --status-blocked: #f16b62;
+
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  --canvas: #f8f9fa;
+  --sidebar: #f1f3f5;
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-overlay: #ffffff;
+  --surface-focus: #eef1f4;
+
+  --ink: #1e2433;
+  --ink-muted: #5b6472;
+  --ink-faint: #8791a0;
+
+  --hairline: rgba(30, 36, 51, 0.08);
+  --hairline-strong: rgba(30, 36, 51, 0.14);
+
+  --accent-teal: #2563eb;
+  --accent-teal-ink: #ffffff;
+  --champagne: #b08d57;
+
+  --status-ready: #16a34a;
+  --status-incomplete: #ca8a04;
+  --status-attention: #ea7c34;
+  --status-blocked: #dc4c40;
+
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-sidebar: var(--sidebar);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-surface-focus: var(--surface-focus);
+
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+
+  --color-accent-teal: var(--accent-teal);
+  --color-accent-teal-ink: var(--accent-teal-ink);
+  --color-champagne: var(--champagne);
+
+  --color-status-ready: var(--status-ready);
+  --color-status-incomplete: var(--status-incomplete);
+  --color-status-attention: var(--status-attention);
+  --color-status-blocked: var(--status-blocked);
+
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  border-color: var(--hairline);
+}

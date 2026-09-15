@@ -1,0 +1,100 @@
+import { createClient } from "@/lib/supabase/server";
+import { getPrimarySchool } from "@/lib/data-access/school";
+import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
+import {
+  CreateSchoolForm,
+  CreateAcademicYearForm,
+} from "@/components/onboarding/SetupForm";
+
+export default async function BerandaPage() {
+  const supabase = await createClient();
+  const school = await getPrimarySchool(supabase);
+  const academicYear = school ? await getWorkspaceAcademicYear(supabase) : null;
+
+  if (!school) {
+    return (
+      <div className="mx-auto flex max-w-md flex-col gap-6 px-6 py-16">
+        <div>
+          <h1 className="text-[20px] font-semibold text-ink">
+            Selamat datang di SAKALA
+          </h1>
+          <p className="mt-1.5 text-[13.5px] text-ink-muted">
+            Mulai dengan melengkapi profil sekolah.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-hairline bg-surface p-5">
+          <CreateSchoolForm />
+        </div>
+      </div>
+    );
+  }
+
+  if (!academicYear) {
+    return (
+      <div className="mx-auto flex max-w-md flex-col gap-6 px-6 py-16">
+        <div>
+          <h1 className="text-[20px] font-semibold text-ink">
+            {school.schoolName}
+          </h1>
+          <p className="mt-1.5 text-[13.5px] text-ink-muted">
+            Aktifkan tahun ajaran untuk mulai bekerja.
+          </p>
+        </div>
+        <div className="rounded-2xl border border-hairline bg-surface p-5">
+          <CreateAcademicYearForm schoolId={school.id} />
+        </div>
+      </div>
+    );
+  }
+
+  const checklist = [
+    { label: "Data guru", ready: false },
+    { label: "Data mata pelajaran", ready: false },
+    { label: "Data kelas", ready: false },
+    { label: "Beban mengajar", ready: false },
+    { label: "Struktur waktu", ready: false },
+  ];
+
+  return (
+    <div className="mx-auto max-w-3xl px-6 py-10">
+      <p className="text-[10.5px] font-medium tracking-wide text-ink-faint">
+        TAHUN AJARAN {academicYear.label}
+      </p>
+      <h1 className="mt-1 text-[22px] font-semibold text-ink">Beranda</h1>
+
+      <div className="mt-8 rounded-2xl border border-hairline bg-surface p-5">
+        <h2 className="text-[13.5px] font-medium text-ink">
+          Kesiapan data
+        </h2>
+        <ul className="mt-3 space-y-2">
+          {checklist.map((item) => (
+            <li
+              key={item.label}
+              className="flex items-center gap-2.5 text-[13px] text-ink-muted"
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  item.ready ? "bg-status-ready" : "bg-status-incomplete"
+                }`}
+              />
+              {item.label}
+              {!item.ready && (
+                <span className="text-[11px] text-ink-faint">
+                  · modul segera dibangun
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-hairline bg-surface p-5">
+        <h2 className="text-[13.5px] font-medium text-ink">Jadwal</h2>
+        <p className="mt-1.5 text-[13px] text-ink-muted">
+          Belum dapat dibuat — lengkapi data guru, mapel, kelas, beban
+          mengajar, dan struktur waktu terlebih dahulu.
+        </p>
+      </div>
+    </div>
+  );
+}
