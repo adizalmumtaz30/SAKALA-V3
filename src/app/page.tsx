@@ -6,6 +6,7 @@ import { listTeachers } from "@/lib/data-access/teacher";
 import { listSubjects } from "@/lib/data-access/subject";
 import { listClassesForYear } from "@/lib/data-access/class";
 import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
+import { listTimeStructureForYear } from "@/lib/data-access/time-structure";
 import {
   CreateSchoolForm,
   CreateAcademicYearForm,
@@ -52,11 +53,12 @@ export default async function BerandaPage() {
     );
   }
 
-  const [teachers, subjects, classes, assignments] = await Promise.all([
+  const [teachers, subjects, classes, assignments, timeSlots] = await Promise.all([
     listTeachers(supabase),
     listSubjects(supabase),
     listClassesForYear(supabase, academicYear.id),
     listTeachingAssignmentsForYear(supabase, academicYear.id),
+    listTimeStructureForYear(supabase, academicYear.id),
   ]);
 
   const checklist = [
@@ -90,10 +92,10 @@ export default async function BerandaPage() {
     },
     {
       label: "Struktur waktu",
-      ready: false,
-      href: "/jadwal",
-      count: 0,
-      builtYet: false,
+      ready: timeSlots.some((s) => s.status === "active"),
+      href: "/jadwal/struktur-waktu",
+      count: timeSlots.length,
+      builtYet: true,
     },
   ];
 
