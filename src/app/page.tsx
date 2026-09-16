@@ -5,6 +5,7 @@ import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
 import { listTeachers } from "@/lib/data-access/teacher";
 import { listSubjects } from "@/lib/data-access/subject";
 import { listClassesForYear } from "@/lib/data-access/class";
+import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
 import {
   CreateSchoolForm,
   CreateAcademicYearForm,
@@ -51,10 +52,11 @@ export default async function BerandaPage() {
     );
   }
 
-  const [teachers, subjects, classes] = await Promise.all([
+  const [teachers, subjects, classes, assignments] = await Promise.all([
     listTeachers(supabase),
     listSubjects(supabase),
     listClassesForYear(supabase, academicYear.id),
+    listTeachingAssignmentsForYear(supabase, academicYear.id),
   ]);
 
   const checklist = [
@@ -81,10 +83,10 @@ export default async function BerandaPage() {
     },
     {
       label: "Beban mengajar",
-      ready: false,
+      ready: assignments.some((a) => a.status === "active"),
       href: "/beban-mengajar",
-      count: 0,
-      builtYet: false,
+      count: assignments.length,
+      builtYet: true,
     },
     {
       label: "Struktur waktu",
