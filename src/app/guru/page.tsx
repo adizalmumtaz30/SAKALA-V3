@@ -1,9 +1,11 @@
+import { Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { listTeachers } from "@/lib/data-access/teacher";
 import { createTeacherAction, toggleTeacherStatusAction } from "@/lib/application/master-data.actions";
 import { NameOnlyCreateForm } from "@/components/master-data/NameOnlyCreateForm";
-import { ToggleStatusButton } from "@/components/master-data/ToggleStatusButton";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { EntityRow } from "@/components/master-data/EntityRow";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function GuruPage() {
   const supabase = await createClient();
@@ -11,12 +13,13 @@ export default async function GuruPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-10">
-      <h1 className="text-[20px] font-semibold text-ink">Guru</h1>
-      <p className="mt-1 text-[13px] text-ink-muted">
-        Cukup nama untuk mulai — detail lain bisa dilengkapi belakangan.
-      </p>
+      <PageHeader
+        kicker="DATA"
+        title="Guru"
+        description="Cukup nama untuk mulai — detail lain bisa dilengkapi belakangan."
+      />
 
-      <div className="mt-6">
+      <div className="mt-6 rounded-2xl border border-hairline bg-surface p-5">
         <NameOnlyCreateForm
           action={createTeacherAction}
           placeholder="Nama guru"
@@ -26,25 +29,20 @@ export default async function GuruPage() {
 
       <div className="mt-8 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
         {teachers.length === 0 && (
-          <p className="px-4 py-6 text-center text-[13px] text-ink-faint">
-            Belum ada data guru.
-          </p>
+          <EmptyState
+            icon={<Users size={16} strokeWidth={1.75} />}
+            message="Belum ada data guru."
+          />
         )}
         {teachers.map((teacher) => (
-          <div
+          <EntityRow
             key={teacher.id}
-            className="flex items-center justify-between px-4 py-3"
-          >
-            <div>
-              <p className="text-[13.5px] text-ink">{teacher.name}</p>
-              <StatusBadge status={teacher.status} />
-            </div>
-            <ToggleStatusButton
-              id={teacher.id}
-              status={teacher.status}
-              action={toggleTeacherStatusAction}
-            />
-          </div>
+            icon={<Users size={15} strokeWidth={1.75} />}
+            name={teacher.name}
+            status={teacher.status}
+            id={teacher.id}
+            toggleAction={toggleTeacherStatusAction}
+          />
         ))}
       </div>
     </div>

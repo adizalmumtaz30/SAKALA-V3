@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Users, BookOpen, LayoutGrid, Scale, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getPrimarySchool } from "@/lib/data-access/school";
 import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
@@ -9,6 +10,7 @@ import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assig
 import { listTimeStructureForYear } from "@/lib/data-access/time-structure";
 import { computeDiagnosticIssues } from "@/lib/application/diagnostics";
 import { IssueList } from "@/components/ui/IssueList";
+import { PageHeader } from "@/components/ui/PageHeader";
 import {
   CreateSchoolForm,
   CreateAcademicYearForm,
@@ -66,38 +68,38 @@ export default async function BerandaPage() {
   const checklist = [
     {
       label: "Data guru",
+      icon: Users,
       ready: teachers.some((t) => t.status === "active"),
       href: "/guru",
       count: teachers.length,
-      builtYet: true,
     },
     {
       label: "Data mata pelajaran",
+      icon: BookOpen,
       ready: subjects.some((s) => s.status === "active"),
       href: "/mapel",
       count: subjects.length,
-      builtYet: true,
     },
     {
       label: "Data kelas",
+      icon: LayoutGrid,
       ready: classes.some((c) => c.status === "active"),
       href: "/kelas",
       count: classes.length,
-      builtYet: true,
     },
     {
       label: "Beban mengajar",
+      icon: Scale,
       ready: assignments.some((a) => a.status === "active"),
       href: "/beban-mengajar",
       count: assignments.length,
-      builtYet: true,
     },
     {
       label: "Struktur waktu",
+      icon: Clock,
       ready: timeSlots.some((s) => s.status === "active"),
       href: "/jadwal/struktur-waktu",
       count: timeSlots.length,
-      builtYet: true,
     },
   ];
 
@@ -112,54 +114,69 @@ export default async function BerandaPage() {
   const readyForSchedule = assignments.length > 0 && !hasBlockingIssue;
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-10">
-      <p className="text-[10.5px] font-medium tracking-wide text-ink-faint">
-        TAHUN AJARAN {academicYear.label}
-      </p>
-      <h1 className="mt-1 text-[22px] font-semibold text-ink">Beranda</h1>
+    <div className="relative mx-auto max-w-3xl px-6 py-10">
+      {/* Atmospheric heritage layer — discovered, not displayed */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-24 -top-16 h-72 w-72 opacity-[0.05]"
+        style={{
+          background:
+            "radial-gradient(closest-side, var(--color-champagne), transparent 70%)",
+        }}
+      />
 
-      <div className="mt-8 rounded-2xl border border-hairline bg-surface p-5">
-        <h2 className="text-[13.5px] font-medium text-ink">
-          Kesiapan data
-        </h2>
-        <ul className="mt-3 space-y-2">
-          {checklist.map((item) => (
-            <li key={item.label} className="flex items-center gap-2.5 text-[13px]">
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${
-                  item.ready ? "bg-status-ready" : "bg-status-incomplete"
-                }`}
-              />
-              {item.builtYet ? (
-                <Link href={item.href} className="text-ink-muted hover:text-ink">
-                  {item.label}
-                </Link>
-              ) : (
-                <span className="text-ink-muted">{item.label}</span>
-              )}
-              {item.builtYet ? (
-                <span className="text-[11px] text-ink-faint">
-                  · {item.count} data
-                </span>
-              ) : (
-                <span className="text-[11px] text-ink-faint">
-                  · modul segera dibangun
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
+      <div className="relative">
+        <PageHeader kicker={`TAHUN AJARAN ${academicYear.label}`} title="Beranda" />
 
-      <IssueList issues={issues} />
+        <div className="mt-8 rounded-2xl border border-hairline bg-surface p-5">
+          <h2 className="text-[13.5px] font-medium text-ink">
+            Kesiapan data
+          </h2>
+          <ul className="mt-3 space-y-1">
+            {checklist.map((item) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.label}>
+                  <Link
+                    href={item.href}
+                    className="flex items-center gap-3 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-surface-elevated"
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                        item.ready ? "bg-status-ready" : "bg-status-incomplete"
+                      }`}
+                    />
+                    <Icon size={14} strokeWidth={1.75} className="text-ink-faint" />
+                    <span className="text-[13px] text-ink-muted">
+                      {item.label}
+                    </span>
+                    <span className="ml-auto text-[11px] text-ink-faint">
+                      {item.count} data
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
 
-      <div className="mt-4 rounded-2xl border border-hairline bg-surface p-5">
-        <h2 className="text-[13.5px] font-medium text-ink">Jadwal</h2>
-        <p className="mt-1.5 text-[13px] text-ink-muted">
-          {readyForSchedule
-            ? "Data pengajaran sudah lengkap dan konsisten — kanvas jadwal & Scheduling Engine belum dibangun, menyusul fase berikutnya."
-            : "Belum dapat dibuat — lengkapi data guru, mapel, kelas, beban mengajar, dan struktur waktu terlebih dahulu."}
-        </p>
+        <IssueList issues={issues} />
+
+        <div className="mt-4 rounded-2xl border border-hairline bg-surface p-5">
+          <div className="flex items-center gap-2">
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                readyForSchedule ? "bg-status-ready" : "bg-status-incomplete"
+              }`}
+            />
+            <h2 className="text-[13.5px] font-medium text-ink">Jadwal</h2>
+          </div>
+          <p className="mt-1.5 text-[13px] text-ink-muted">
+            {readyForSchedule
+              ? "Data pengajaran sudah lengkap dan konsisten — kanvas jadwal & Scheduling Engine belum dibangun, menyusul fase berikutnya."
+              : "Belum dapat dibuat — lengkapi data guru, mapel, kelas, beban mengajar, dan struktur waktu terlebih dahulu."}
+          </p>
+        </div>
       </div>
     </div>
   );

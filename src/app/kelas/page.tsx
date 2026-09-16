@@ -1,11 +1,13 @@
 import Link from "next/link";
+import { LayoutGrid } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
 import { listClassesForYear } from "@/lib/data-access/class";
 import { toggleClassStatusAction } from "@/lib/application/master-data.actions";
 import { CreateClassForm } from "@/components/master-data/CreateClassForm";
-import { ToggleStatusButton } from "@/components/master-data/ToggleStatusButton";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { EntityRow } from "@/components/master-data/EntityRow";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function KelasPage() {
   const supabase = await createClient();
@@ -35,36 +37,33 @@ export default async function KelasPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-10">
-      <h1 className="text-[20px] font-semibold text-ink">Kelas</h1>
-      <p className="mt-1 text-[13px] text-ink-muted">
-        Tahun ajaran {academicYear.label}
-      </p>
+      <PageHeader
+        kicker="DATA"
+        title="Kelas"
+        description={`Tahun ajaran ${academicYear.label}`}
+      />
 
-      <div className="mt-6">
+      <div className="mt-6 rounded-2xl border border-hairline bg-surface p-5">
         <CreateClassForm academicYearId={academicYear.id} />
       </div>
 
       <div className="mt-8 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
         {classes.length === 0 && (
-          <p className="px-4 py-6 text-center text-[13px] text-ink-faint">
-            Belum ada data kelas untuk tahun ajaran ini.
-          </p>
+          <EmptyState
+            icon={<LayoutGrid size={16} strokeWidth={1.75} />}
+            message="Belum ada data kelas untuk tahun ajaran ini."
+          />
         )}
         {classes.map((schoolClass) => (
-          <div
+          <EntityRow
             key={schoolClass.id}
-            className="flex items-center justify-between px-4 py-3"
-          >
-            <div>
-              <p className="text-[13.5px] text-ink">{schoolClass.name}</p>
-              <StatusBadge status={schoolClass.status} />
-            </div>
-            <ToggleStatusButton
-              id={schoolClass.id}
-              status={schoolClass.status}
-              action={toggleClassStatusAction}
-            />
-          </div>
+            icon={<LayoutGrid size={15} strokeWidth={1.75} />}
+            name={schoolClass.name}
+            meta={schoolClass.capacity ? `${schoolClass.capacity} siswa` : undefined}
+            status={schoolClass.status}
+            id={schoolClass.id}
+            toggleAction={toggleClassStatusAction}
+          />
         ))}
       </div>
     </div>

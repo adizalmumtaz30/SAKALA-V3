@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Scale } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
 import { listTeachers } from "@/lib/data-access/teacher";
@@ -7,8 +8,9 @@ import { listClassesForYear } from "@/lib/data-access/class";
 import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
 import { toggleBebanMengajarStatusAction } from "@/lib/application/teaching-assignment.actions";
 import { CreateBebanMengajarForm } from "@/components/master-data/CreateBebanMengajarForm";
-import { ToggleStatusButton } from "@/components/master-data/ToggleStatusButton";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { EntityRow } from "@/components/master-data/EntityRow";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function BebanMengajarPage() {
   const supabase = await createClient();
@@ -52,11 +54,11 @@ export default async function BebanMengajarPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-10">
-      <h1 className="text-[20px] font-semibold text-ink">Beban Mengajar</h1>
-      <p className="mt-1 text-[13px] text-ink-muted">
-        Tahun ajaran {academicYear.label} — hubungkan Guru, Mata Pelajaran,
-        dan Kelas beserta target JP mingguan.
-      </p>
+      <PageHeader
+        kicker="DATA"
+        title="Beban Mengajar"
+        description={`Tahun ajaran ${academicYear.label} — hubungkan Guru, Mata Pelajaran, dan Kelas beserta target JP mingguan.`}
+      />
 
       <div className="mt-6 rounded-2xl border border-hairline bg-surface p-5">
         {missingData ? (
@@ -76,32 +78,21 @@ export default async function BebanMengajarPage() {
 
       <div className="mt-8 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
         {assignments.length === 0 && (
-          <p className="px-4 py-6 text-center text-[13px] text-ink-faint">
-            Belum ada beban mengajar untuk tahun ajaran ini.
-          </p>
+          <EmptyState
+            icon={<Scale size={16} strokeWidth={1.75} />}
+            message="Belum ada beban mengajar untuk tahun ajaran ini."
+          />
         )}
         {assignments.map((a) => (
-          <div
+          <EntityRow
             key={a.id}
-            className="flex items-center justify-between px-4 py-3"
-          >
-            <div>
-              <p className="text-[13.5px] text-ink">
-                {a.teacherName} — {a.subjectName} — {a.className}
-              </p>
-              <div className="mt-0.5 flex items-center gap-2">
-                <span className="text-[12px] text-ink-muted">
-                  {a.targetJp} JP/minggu
-                </span>
-                <StatusBadge status={a.status} />
-              </div>
-            </div>
-            <ToggleStatusButton
-              id={a.id}
-              status={a.status}
-              action={toggleBebanMengajarStatusAction}
-            />
-          </div>
+            icon={<Scale size={15} strokeWidth={1.75} />}
+            name={`${a.teacherName} — ${a.subjectName} — ${a.className}`}
+            meta={`${a.targetJp} JP/minggu`}
+            status={a.status}
+            id={a.id}
+            toggleAction={toggleBebanMengajarStatusAction}
+          />
         ))}
       </div>
     </div>

@@ -5,6 +5,7 @@ import { listTimeStructureForYear } from "@/lib/data-access/time-structure";
 import { GenerateTimeStructureForm } from "@/components/time-structure/GenerateTimeStructureForm";
 import { TimeSlotRow } from "@/components/time-structure/TimeSlotRow";
 import { DAYS, DAY_LABEL } from "@/lib/domain/time-structure";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default async function StrukturWaktuPage() {
   const supabase = await createClient();
@@ -36,16 +37,11 @@ export default async function StrukturWaktuPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
-      <p className="text-[10.5px] font-medium tracking-wide text-ink-faint">
-        JADWAL · PENGATURAN JADWAL
-      </p>
-      <h1 className="mt-1 text-[20px] font-semibold text-ink">
-        Struktur Waktu
-      </h1>
-      <p className="mt-1 text-[13px] text-ink-muted">
-        Tahun ajaran {academicYear.label} — fondasi slot waktu yang dibaca
-        Scheduling Engine sebelum menyusun jadwal.
-      </p>
+      <PageHeader
+        kicker="JADWAL · PENGATURAN JADWAL"
+        title="Struktur Waktu"
+        description={`Tahun ajaran ${academicYear.label} — fondasi slot waktu yang dibaca Scheduling Engine sebelum menyusun jadwal.`}
+      />
 
       {slots.length === 0 ? (
         <div className="mt-6 rounded-2xl border border-hairline bg-surface p-5">

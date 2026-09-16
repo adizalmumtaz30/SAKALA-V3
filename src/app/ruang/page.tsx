@@ -1,9 +1,11 @@
+import { DoorOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { listRooms } from "@/lib/data-access/room";
 import { createRoomAction, toggleRoomStatusAction } from "@/lib/application/master-data.actions";
 import { NameOnlyCreateForm } from "@/components/master-data/NameOnlyCreateForm";
-import { ToggleStatusButton } from "@/components/master-data/ToggleStatusButton";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { EntityRow } from "@/components/master-data/EntityRow";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function RuangPage() {
   const supabase = await createClient();
@@ -11,13 +13,13 @@ export default async function RuangPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-10">
-      <h1 className="text-[20px] font-semibold text-ink">Ruang</h1>
-      <p className="mt-1 text-[13px] text-ink-muted">
-        Ruang bersifat opsional — lengkapi hanya jika sekolah melacak
-        penggunaan ruang per jadwal.
-      </p>
+      <PageHeader
+        kicker="DATA"
+        title="Ruang"
+        description="Ruang bersifat opsional — lengkapi hanya jika sekolah melacak penggunaan ruang per jadwal."
+      />
 
-      <div className="mt-6">
+      <div className="mt-6 rounded-2xl border border-hairline bg-surface p-5">
         <NameOnlyCreateForm
           action={createRoomAction}
           placeholder="Nama ruang"
@@ -27,25 +29,20 @@ export default async function RuangPage() {
 
       <div className="mt-8 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
         {rooms.length === 0 && (
-          <p className="px-4 py-6 text-center text-[13px] text-ink-faint">
-            Belum ada data ruang.
-          </p>
+          <EmptyState
+            icon={<DoorOpen size={16} strokeWidth={1.75} />}
+            message="Belum ada data ruang."
+          />
         )}
         {rooms.map((room) => (
-          <div
+          <EntityRow
             key={room.id}
-            className="flex items-center justify-between px-4 py-3"
-          >
-            <div>
-              <p className="text-[13.5px] text-ink">{room.name}</p>
-              <StatusBadge status={room.status} />
-            </div>
-            <ToggleStatusButton
-              id={room.id}
-              status={room.status}
-              action={toggleRoomStatusAction}
-            />
-          </div>
+            icon={<DoorOpen size={15} strokeWidth={1.75} />}
+            name={room.name}
+            status={room.status}
+            id={room.id}
+            toggleAction={toggleRoomStatusAction}
+          />
         ))}
       </div>
     </div>

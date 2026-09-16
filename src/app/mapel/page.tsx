@@ -1,9 +1,11 @@
+import { BookOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { listSubjects } from "@/lib/data-access/subject";
 import { createSubjectAction, toggleSubjectStatusAction } from "@/lib/application/master-data.actions";
 import { NameOnlyCreateForm } from "@/components/master-data/NameOnlyCreateForm";
-import { ToggleStatusButton } from "@/components/master-data/ToggleStatusButton";
-import { StatusBadge } from "@/components/ui/StatusBadge";
+import { EntityRow } from "@/components/master-data/EntityRow";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function MapelPage() {
   const supabase = await createClient();
@@ -11,12 +13,13 @@ export default async function MapelPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-10">
-      <h1 className="text-[20px] font-semibold text-ink">Mapel</h1>
-      <p className="mt-1 text-[13px] text-ink-muted">
-        Daftar mata pelajaran yang diajarkan di sekolah.
-      </p>
+      <PageHeader
+        kicker="DATA"
+        title="Mapel"
+        description="Daftar mata pelajaran yang diajarkan di sekolah."
+      />
 
-      <div className="mt-6">
+      <div className="mt-6 rounded-2xl border border-hairline bg-surface p-5">
         <NameOnlyCreateForm
           action={createSubjectAction}
           placeholder="Nama mata pelajaran"
@@ -26,25 +29,20 @@ export default async function MapelPage() {
 
       <div className="mt-8 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
         {subjects.length === 0 && (
-          <p className="px-4 py-6 text-center text-[13px] text-ink-faint">
-            Belum ada data mata pelajaran.
-          </p>
+          <EmptyState
+            icon={<BookOpen size={16} strokeWidth={1.75} />}
+            message="Belum ada data mata pelajaran."
+          />
         )}
         {subjects.map((subject) => (
-          <div
+          <EntityRow
             key={subject.id}
-            className="flex items-center justify-between px-4 py-3"
-          >
-            <div>
-              <p className="text-[13.5px] text-ink">{subject.name}</p>
-              <StatusBadge status={subject.status} />
-            </div>
-            <ToggleStatusButton
-              id={subject.id}
-              status={subject.status}
-              action={toggleSubjectStatusAction}
-            />
-          </div>
+            icon={<BookOpen size={15} strokeWidth={1.75} />}
+            name={subject.name}
+            status={subject.status}
+            id={subject.id}
+            toggleAction={toggleSubjectStatusAction}
+          />
         ))}
       </div>
     </div>
