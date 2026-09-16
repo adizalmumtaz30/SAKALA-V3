@@ -1,10 +1,12 @@
 import { Search, User } from "lucide-react";
 import type { School } from "@/lib/domain/school";
 import type { AcademicYear } from "@/lib/domain/academic-year";
+import { AcademicContextTrigger } from "@/components/shell/AcademicContextTrigger";
 
 interface TopBarProps {
   school: School | null;
   academicYear: AcademicYear | null;
+  academicYears: AcademicYear[];
 }
 
 function SystemStatus({
@@ -33,7 +35,7 @@ function SystemStatus({
   );
 }
 
-export function TopBar({ school, academicYear }: TopBarProps) {
+export function TopBar({ school, academicYear, academicYears }: TopBarProps) {
   return (
     <header className="relative flex h-16 shrink-0 items-center gap-6 border-b border-hairline bg-canvas px-6">
       {/* School Identity */}
@@ -54,18 +56,13 @@ export function TopBar({ school, academicYear }: TopBarProps) {
       <div className="h-6 w-px bg-hairline" />
 
       {/* Academic Year Context */}
-      <div className="flex flex-col leading-tight">
-        <span className="text-[9.5px] font-medium tracking-wide text-ink-faint">
-          TAHUN PELAJARAN
-        </span>
-        {academicYear ? (
-          <span className="text-[13px] text-ink">{academicYear.label}</span>
-        ) : (
-          <span className="text-[13px] text-status-incomplete">
-            Belum dipilih
-          </span>
-        )}
-      </div>
+      {school && (
+        <AcademicContextTrigger
+          schoolId={school.id}
+          academicYear={academicYear}
+          academicYears={academicYears}
+        />
+      )}
 
       {/* Global Search — visual placeholder, wired in a later phase */}
       <div className="flex flex-1 justify-center">

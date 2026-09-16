@@ -4,7 +4,10 @@ import "./globals.css";
 import { AppShell } from "@/components/shell/AppShell";
 import { createClient } from "@/lib/supabase/server";
 import { getPrimarySchool } from "@/lib/data-access/school";
-import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
+import {
+  getWorkspaceAcademicYear,
+  listAcademicYears,
+} from "@/lib/data-access/academic-year";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -23,15 +26,16 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
-  const [school, academicYear] = await Promise.all([
-    getPrimarySchool(supabase).catch(() => null),
+  const school = await getPrimarySchool(supabase).catch(() => null);
+  const [academicYear, academicYears] = await Promise.all([
     getWorkspaceAcademicYear(supabase).catch(() => null),
+    school ? listAcademicYears(supabase, school.id).catch(() => []) : Promise.resolve([]),
   ]);
 
   return (
     <html lang="id" className={`${inter.variable} h-full antialiased`}>
       <body className="h-full">
-        <AppShell school={school} academicYear={academicYear}>
+        <AppShell school={school} academicYear={academicYear} academicYears={academicYears}>
           {children}
         </AppShell>
       </body>

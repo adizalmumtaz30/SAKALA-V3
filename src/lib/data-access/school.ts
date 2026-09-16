@@ -37,3 +37,26 @@ export async function getPrimarySchool(
   if (error) throw error;
   return data ? toDomain(data as SchoolRow) : null;
 }
+
+export async function updateSchool(
+  supabase: SupabaseClient,
+  input: {
+    id: string;
+    schoolName: string;
+    shortName: string | null;
+    address: string | null;
+    schoolCode: string | null;
+  },
+): Promise<void> {
+  const { error } = await supabase
+    .from("school")
+    .update({
+      school_name: input.schoolName,
+      short_name: input.shortName,
+      address: input.address,
+      school_code: input.schoolCode,
+    })
+    .eq("id", input.id);
+
+  if (error) throw error;
+}

@@ -7,15 +7,21 @@ import type { AcademicYear } from "@/lib/domain/academic-year";
 interface AppShellProps {
   school: School | null;
   academicYear: AcademicYear | null;
+  academicYears: AcademicYear[];
   children: ReactNode;
 }
 
-export function AppShell({ school, academicYear, children }: AppShellProps) {
+export function AppShell({
+  school,
+  academicYear,
+  academicYears,
+  children,
+}: AppShellProps) {
   return (
     <div className="flex h-dvh bg-canvas">
       <Sidebar />
       <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar school={school} academicYear={academicYear} />
+        <TopBar school={school} academicYear={academicYear} academicYears={academicYears} />
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
