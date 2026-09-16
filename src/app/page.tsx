@@ -7,6 +7,8 @@ import { listSubjects } from "@/lib/data-access/subject";
 import { listClassesForYear } from "@/lib/data-access/class";
 import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
 import { listTimeStructureForYear } from "@/lib/data-access/time-structure";
+import { computeDiagnosticIssues } from "@/lib/application/diagnostics";
+import { IssueList } from "@/components/ui/IssueList";
 import {
   CreateSchoolForm,
   CreateAcademicYearForm,
@@ -99,6 +101,16 @@ export default async function BerandaPage() {
     },
   ];
 
+  const issues = computeDiagnosticIssues({
+    teachers,
+    subjects,
+    classes,
+    assignments,
+    timeSlots,
+  });
+  const hasBlockingIssue = issues.some((i) => i.severity === "blocked");
+  const readyForSchedule = assignments.length > 0 && !hasBlockingIssue;
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
       <p className="text-[10.5px] font-medium tracking-wide text-ink-faint">
@@ -139,11 +151,14 @@ export default async function BerandaPage() {
         </ul>
       </div>
 
+      <IssueList issues={issues} />
+
       <div className="mt-4 rounded-2xl border border-hairline bg-surface p-5">
         <h2 className="text-[13.5px] font-medium text-ink">Jadwal</h2>
         <p className="mt-1.5 text-[13px] text-ink-muted">
-          Belum dapat dibuat — lengkapi data guru, mapel, kelas, beban
-          mengajar, dan struktur waktu terlebih dahulu.
+          {readyForSchedule
+            ? "Data pengajaran sudah lengkap dan konsisten — kanvas jadwal & Scheduling Engine belum dibangun, menyusul fase berikutnya."
+            : "Belum dapat dibuat — lengkapi data guru, mapel, kelas, beban mengajar, dan struktur waktu terlebih dahulu."}
         </p>
       </div>
     </div>
