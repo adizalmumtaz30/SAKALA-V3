@@ -55,6 +55,24 @@ export async function listAttendanceForRange(
   return (data as unknown as AttendanceRow[]).map(toDomain);
 }
 
+export async function listAttendanceForTeacher(
+  supabase: SupabaseClient,
+  academicYearId: string,
+  teacherId: string,
+  limit = 10,
+): Promise<AttendanceRecord[]> {
+  const { data, error } = await supabase
+    .from("attendance")
+    .select("*, teacher:teacher_id(name)")
+    .eq("academic_year_id", academicYearId)
+    .eq("teacher_id", teacherId)
+    .order("date", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return (data as unknown as AttendanceRow[]).map(toDomain);
+}
+
 export async function upsertAttendance(
   supabase: SupabaseClient,
   input: {

@@ -68,3 +68,21 @@ export async function listHistory(
   if (error) throw error;
   return (data as HistoryRow[]).map(toDomain);
 }
+
+export async function listHistoryForEntity(
+  supabase: SupabaseClient,
+  entityType: string,
+  entityId: string,
+  limit = 10,
+): Promise<HistoryEntry[]> {
+  const { data, error } = await supabase
+    .from("history_entry")
+    .select("*")
+    .eq("entity_type", entityType)
+    .eq("entity_id", entityId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return (data as HistoryRow[]).map(toDomain);
+}

@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { listTeachers } from "@/lib/data-access/teacher";
 import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
 import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
+import { listAttendanceForTeacher } from "@/lib/data-access/attendance";
+import { listHistoryForEntity } from "@/lib/data-access/history";
 import { createTeacherAction, toggleTeacherStatusAction } from "@/lib/application/master-data.actions";
 import { NameOnlyCreateForm } from "@/components/master-data/NameOnlyCreateForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
@@ -21,11 +23,19 @@ export default async function GuruPage({
 
   const selectedTeacher = detail ? teachers.find((t) => t.id === detail) : undefined;
   let selectedAssignments: Awaited<ReturnType<typeof listTeachingAssignmentsForYear>> = [];
+  let selectedAttendance: Awaited<ReturnType<typeof listAttendanceForTeacher>> = [];
+  let selectedHistory: Awaited<ReturnType<typeof listHistoryForEntity>> = [];
   if (selectedTeacher) {
     const academicYear = await getWorkspaceAcademicYear(supabase);
     if (academicYear) {
-      const all = await listTeachingAssignmentsForYear(supabase, academicYear.id);
+      const [all, attendance, history] = await Promise.all([
+        listTeachingAssignmentsForYear(supabase, academicYear.id),
+        listAttendanceForTeacher(supabase, academicYear.id, selectedTeacher.id, 5),
+        listHistoryForEntity(supabase, "guru", selectedTeacher.id, 5),
+      ]);
       selectedAssignments = all.filter((a) => a.teacherId === selectedTeacher.id);
+      selectedAttendance = attendance;
+      selectedHistory = history;
     }
   }
 
@@ -66,7 +76,12 @@ export default async function GuruPage({
       </div>
 
       {selectedTeacher && (
-        <GuruDetailDrawer teacher={selectedTeacher} assignments={selectedAssignments} />
+        <GuruDetailDrawer
+          teacher={selectedTeacher}
+          assignments={selectedAssignments}
+          attendance={selectedAttendance}
+          history={selectedHistory}
+        />
       )}
     </div>
   );
