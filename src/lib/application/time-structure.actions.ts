@@ -6,6 +6,7 @@ import {
   generateTimeStructure,
   updateTimeSlot,
 } from "@/lib/data-access/time-structure";
+import { recordHistory } from "@/lib/data-access/history";
 import type { Day, TimeSlotType } from "@/lib/domain/time-structure";
 
 export interface FormState {
@@ -42,6 +43,13 @@ export async function generateTimeStructureAction(
       startTime,
       durationMinutes,
     });
+    await recordHistory(supabase, {
+      academicYearId,
+      entityType: "struktur_waktu",
+      entityId: null,
+      action: "create",
+      summary: `Struktur waktu dibuat — ${inserted} slot (${days.length} hari, ${periodCount} periode)`,
+    });
     revalidatePath("/jadwal/struktur-waktu");
     return { success: `${inserted} slot struktur waktu dibuat` };
   } catch (err) {
@@ -56,5 +64,20 @@ export async function updateTimeSlotAction(formData: FormData) {
 
   const supabase = await createClient();
   await updateTimeSlot(supabase, { id, type, activityLabel });
+
+  const { data } = await supabase
+    .from("time_structure")
+    .select("academic_year_id, day, period_number")
+    .eq("id", id)
+    .single();
+
+  await recordHistory(supabase, {
+    academicYearId: data?.academic_year_id ?? null,
+    entityType: "struktur_waktu",
+    entityId: id,
+    action: "update",
+    summary: `Slot ${data?.day ?? ""} P${data?.period_number ?? "?"} diubah menjadi ${type}${activityLabel ? ` (${activityLabel})` : ""}`,
+  });
+
   revalidatePath("/jadwal/struktur-waktu");
 }

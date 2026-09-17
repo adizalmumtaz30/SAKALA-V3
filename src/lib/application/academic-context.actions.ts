@@ -6,6 +6,7 @@ import {
   switchWorkspaceAcademicYear,
   createDraftAcademicYear,
 } from "@/lib/data-access/academic-year";
+import { recordHistory } from "@/lib/data-access/history";
 
 export interface FormState {
   error?: string;
@@ -18,6 +19,20 @@ export async function switchAcademicYearAction(formData: FormData) {
 
   const supabase = await createClient();
   await switchWorkspaceAcademicYear(supabase, { schoolId, targetYearId });
+
+  const { data } = await supabase
+    .from("academic_year")
+    .select("label")
+    .eq("id", targetYearId)
+    .single();
+  await recordHistory(supabase, {
+    academicYearId: targetYearId,
+    entityType: "tahun_ajaran",
+    entityId: targetYearId,
+    action: "switch",
+    summary: `Konteks workspace dipindahkan ke tahun ajaran ${data?.label ?? ""}`,
+  });
+
   revalidatePath("/", "layout");
 }
 

@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { updateSchool } from "@/lib/data-access/school";
+import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
+import { recordHistory } from "@/lib/data-access/history";
 
 export interface FormState {
   error?: string;
@@ -24,6 +26,16 @@ export async function updateSchoolProfileAction(
 
   const supabase = await createClient();
   await updateSchool(supabase, { id, schoolName, shortName, address, schoolCode });
+
+  const year = await getWorkspaceAcademicYear(supabase);
+  await recordHistory(supabase, {
+    academicYearId: year?.id ?? null,
+    entityType: "sekolah",
+    entityId: id,
+    action: "update",
+    summary: `Profil sekolah diperbarui (${schoolName})`,
+  });
+
   revalidatePath("/", "layout");
   revalidatePath("/settings");
   return { success: "Profil sekolah disimpan" };

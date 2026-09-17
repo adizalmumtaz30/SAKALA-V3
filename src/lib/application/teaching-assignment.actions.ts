@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createTeachingAssignmentsBulk } from "@/lib/data-access/teaching-assignment";
+import { recordHistory } from "@/lib/data-access/history";
 
 export interface FormState {
   error?: string;
@@ -44,6 +45,14 @@ export async function createBebanMengajarAction(
     targetJp,
   });
 
+  await recordHistory(supabase, {
+    academicYearId,
+    entityType: "beban_mengajar",
+    entityId: null,
+    action: "create",
+    summary: `${inserted} beban mengajar ditambahkan (${targetJp} JP/minggu, ${classIds.length} kelas)`,
+  });
+
   revalidatePath("/beban-mengajar");
   return { success: `${inserted} beban mengajar ditambahkan` };
 }
@@ -51,10 +60,22 @@ export async function createBebanMengajarAction(
 export async function toggleBebanMengajarStatusAction(formData: FormData) {
   const id = String(formData.get("id"));
   const currentStatus = String(formData.get("status"));
+  const nextStatus = toggleNextStatus(currentStatus);
   const supabase = await createClient();
-  await supabase
+  const { data } = await supabase
     .from("teaching_assignment")
-    .update({ status: toggleNextStatus(currentStatus) })
-    .eq("id", id);
+    .update({ status: nextStatus })
+    .eq("id", id)
+    .select("academic_year_id")
+    .single();
+
+  await recordHistory(supabase, {
+    academicYearId: data?.academic_year_id ?? null,
+    entityType: "beban_mengajar",
+    entityId: id,
+    action: "toggle_status",
+    summary: `Beban mengajar diubah menjadi ${nextStatus === "active" ? "aktif" : "nonaktif"}`,
+  });
+
   revalidatePath("/beban-mengajar");
 }

@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getPrimarySchool } from "@/lib/data-access/school";
+import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
+import { recordHistory } from "@/lib/data-access/history";
 
 export interface FormState {
   error?: string;
@@ -28,13 +30,27 @@ export async function createTeacherAction(
   const supabase = await createClient();
   const school = await getPrimarySchool(supabase);
 
-  const { error } = await supabase.from("teacher").insert({
-    school_id: school?.id ?? null,
-    name,
-    status: "active",
-  });
+  const { data, error } = await supabase
+    .from("teacher")
+    .insert({
+      school_id: school?.id ?? null,
+      name,
+      status: "active",
+    })
+    .select("id")
+    .single();
 
   if (error) return { error: error.message };
+
+  const year = await getWorkspaceAcademicYear(supabase);
+  await recordHistory(supabase, {
+    academicYearId: year?.id ?? null,
+    entityType: "guru",
+    entityId: data?.id ?? null,
+    action: "create",
+    summary: `Guru ${name} ditambahkan`,
+  });
+
   revalidatePath("/guru");
   return emptyState;
 }
@@ -42,11 +58,24 @@ export async function createTeacherAction(
 export async function toggleTeacherStatusAction(formData: FormData) {
   const id = String(formData.get("id"));
   const currentStatus = String(formData.get("status"));
+  const nextStatus = toggleNextStatus(currentStatus);
   const supabase = await createClient();
-  await supabase
+  const { data } = await supabase
     .from("teacher")
-    .update({ status: toggleNextStatus(currentStatus) })
-    .eq("id", id);
+    .update({ status: nextStatus })
+    .eq("id", id)
+    .select("name")
+    .single();
+
+  const year = await getWorkspaceAcademicYear(supabase);
+  await recordHistory(supabase, {
+    academicYearId: year?.id ?? null,
+    entityType: "guru",
+    entityId: id,
+    action: "toggle_status",
+    summary: `Guru ${data?.name ?? ""} diubah menjadi ${nextStatus === "active" ? "aktif" : "nonaktif"}`,
+  });
+
   revalidatePath("/guru");
 }
 
@@ -64,13 +93,27 @@ export async function createSubjectAction(
   const supabase = await createClient();
   const school = await getPrimarySchool(supabase);
 
-  const { error } = await supabase.from("subject").insert({
-    school_id: school?.id ?? null,
-    name,
-    status: "active",
-  });
+  const { data, error } = await supabase
+    .from("subject")
+    .insert({
+      school_id: school?.id ?? null,
+      name,
+      status: "active",
+    })
+    .select("id")
+    .single();
 
   if (error) return { error: error.message };
+
+  const year = await getWorkspaceAcademicYear(supabase);
+  await recordHistory(supabase, {
+    academicYearId: year?.id ?? null,
+    entityType: "mapel",
+    entityId: data?.id ?? null,
+    action: "create",
+    summary: `Mata pelajaran ${name} ditambahkan`,
+  });
+
   revalidatePath("/mapel");
   return emptyState;
 }
@@ -78,11 +121,24 @@ export async function createSubjectAction(
 export async function toggleSubjectStatusAction(formData: FormData) {
   const id = String(formData.get("id"));
   const currentStatus = String(formData.get("status"));
+  const nextStatus = toggleNextStatus(currentStatus);
   const supabase = await createClient();
-  await supabase
+  const { data } = await supabase
     .from("subject")
-    .update({ status: toggleNextStatus(currentStatus) })
-    .eq("id", id);
+    .update({ status: nextStatus })
+    .eq("id", id)
+    .select("name")
+    .single();
+
+  const year = await getWorkspaceAcademicYear(supabase);
+  await recordHistory(supabase, {
+    academicYearId: year?.id ?? null,
+    entityType: "mapel",
+    entityId: id,
+    action: "toggle_status",
+    summary: `Mata pelajaran ${data?.name ?? ""} diubah menjadi ${nextStatus === "active" ? "aktif" : "nonaktif"}`,
+  });
+
   revalidatePath("/mapel");
 }
 
@@ -103,13 +159,26 @@ export async function createClassAction(
   if (!name) return { error: "Nama kelas wajib diisi." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("class").insert({
-    academic_year_id: academicYearId,
-    name,
-    status: "active",
-  });
+  const { data, error } = await supabase
+    .from("class")
+    .insert({
+      academic_year_id: academicYearId,
+      name,
+      status: "active",
+    })
+    .select("id")
+    .single();
 
   if (error) return { error: error.message };
+
+  await recordHistory(supabase, {
+    academicYearId,
+    entityType: "kelas",
+    entityId: data?.id ?? null,
+    action: "create",
+    summary: `Kelas ${name} ditambahkan`,
+  });
+
   revalidatePath("/kelas");
   return emptyState;
 }
@@ -117,11 +186,23 @@ export async function createClassAction(
 export async function toggleClassStatusAction(formData: FormData) {
   const id = String(formData.get("id"));
   const currentStatus = String(formData.get("status"));
+  const nextStatus = toggleNextStatus(currentStatus);
   const supabase = await createClient();
-  await supabase
+  const { data } = await supabase
     .from("class")
-    .update({ status: toggleNextStatus(currentStatus) })
-    .eq("id", id);
+    .update({ status: nextStatus })
+    .eq("id", id)
+    .select("name, academic_year_id")
+    .single();
+
+  await recordHistory(supabase, {
+    academicYearId: data?.academic_year_id ?? null,
+    entityType: "kelas",
+    entityId: id,
+    action: "toggle_status",
+    summary: `Kelas ${data?.name ?? ""} diubah menjadi ${nextStatus === "active" ? "aktif" : "nonaktif"}`,
+  });
+
   revalidatePath("/kelas");
 }
 
@@ -139,13 +220,27 @@ export async function createRoomAction(
   const supabase = await createClient();
   const school = await getPrimarySchool(supabase);
 
-  const { error } = await supabase.from("room").insert({
-    school_id: school?.id ?? null,
-    name,
-    status: "active",
-  });
+  const { data, error } = await supabase
+    .from("room")
+    .insert({
+      school_id: school?.id ?? null,
+      name,
+      status: "active",
+    })
+    .select("id")
+    .single();
 
   if (error) return { error: error.message };
+
+  const year = await getWorkspaceAcademicYear(supabase);
+  await recordHistory(supabase, {
+    academicYearId: year?.id ?? null,
+    entityType: "ruang",
+    entityId: data?.id ?? null,
+    action: "create",
+    summary: `Ruang ${name} ditambahkan`,
+  });
+
   revalidatePath("/ruang");
   return emptyState;
 }
@@ -153,10 +248,23 @@ export async function createRoomAction(
 export async function toggleRoomStatusAction(formData: FormData) {
   const id = String(formData.get("id"));
   const currentStatus = String(formData.get("status"));
+  const nextStatus = toggleNextStatus(currentStatus);
   const supabase = await createClient();
-  await supabase
+  const { data } = await supabase
     .from("room")
-    .update({ status: toggleNextStatus(currentStatus) })
-    .eq("id", id);
+    .update({ status: nextStatus })
+    .eq("id", id)
+    .select("name")
+    .single();
+
+  const year = await getWorkspaceAcademicYear(supabase);
+  await recordHistory(supabase, {
+    academicYearId: year?.id ?? null,
+    entityType: "ruang",
+    entityId: id,
+    action: "toggle_status",
+    summary: `Ruang ${data?.name ?? ""} diubah menjadi ${nextStatus === "active" ? "aktif" : "nonaktif"}`,
+  });
+
   revalidatePath("/ruang");
 }
