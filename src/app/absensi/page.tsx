@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckSquare } from "lucide-react";
+import { IconAbsensi } from "@/components/icons";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
 import { listTeachers } from "@/lib/data-access/teacher";
@@ -59,7 +59,7 @@ export default async function AbsensiPage({
       <div className="mt-6 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
         {activeTeachers.length === 0 && (
           <EmptyState
-            icon={<CheckSquare size={16} strokeWidth={1.75} />}
+            icon={<IconAbsensi size={16} strokeWidth={1.75} />}
             message="Belum ada guru aktif untuk dicatat kehadirannya."
           />
         )}

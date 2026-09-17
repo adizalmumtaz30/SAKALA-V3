@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutGrid } from "lucide-react";
+import { IconKelas } from "@/components/icons";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
 import { listClassesForYear } from "@/lib/data-access/class";
@@ -50,14 +50,14 @@ export default async function KelasPage() {
       <div className="mt-8 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
         {classes.length === 0 && (
           <EmptyState
-            icon={<LayoutGrid size={16} strokeWidth={1.75} />}
+            icon={<IconKelas size={16} strokeWidth={1.75} />}
             message="Belum ada data kelas untuk tahun ajaran ini."
           />
         )}
         {classes.map((schoolClass) => (
           <EntityRow
             key={schoolClass.id}
-            icon={<LayoutGrid size={15} strokeWidth={1.75} />}
+            icon={<IconKelas size={15} strokeWidth={1.75} />}
             name={schoolClass.name}
             meta={schoolClass.capacity ? `${schoolClass.capacity} siswa` : undefined}
             status={schoolClass.status}

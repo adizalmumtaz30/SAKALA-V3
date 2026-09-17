@@ -5,21 +5,23 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home,
-  Users,
-  BookOpen,
-  LayoutGrid,
-  DoorOpen,
-  Scale,
   Upload,
-  CalendarDays,
-  CheckSquare,
-  FileText,
-  History,
   Settings,
   ChevronsLeft,
   ChevronsRight,
   Clock,
 } from "lucide-react";
+import {
+  IconGuru,
+  IconMapel,
+  IconKelas,
+  IconRuang,
+  IconBebanMengajar,
+  IconJadwal,
+  IconAbsensi,
+  IconLaporan,
+  IconRiwayat,
+} from "@/components/icons";
 import { cn } from "@/lib/cn";
 
 interface NavItem {
@@ -33,23 +35,23 @@ const CORE_ITEMS: NavItem[] = [
 ];
 
 const DATA_ITEMS: NavItem[] = [
-  { href: "/guru", label: "Guru", icon: Users },
-  { href: "/mapel", label: "Mapel", icon: BookOpen },
-  { href: "/kelas", label: "Kelas", icon: LayoutGrid },
-  { href: "/ruang", label: "Ruang", icon: DoorOpen },
-  { href: "/beban-mengajar", label: "Beban Mengajar", icon: Scale },
+  { href: "/guru", label: "Guru", icon: IconGuru },
+  { href: "/mapel", label: "Mapel", icon: IconMapel },
+  { href: "/kelas", label: "Kelas", icon: IconKelas },
+  { href: "/ruang", label: "Ruang", icon: IconRuang },
+  { href: "/beban-mengajar", label: "Beban Mengajar", icon: IconBebanMengajar },
   { href: "/import", label: "Import / Sinkronisasi", icon: Upload },
 ];
 
 const OPERATIONAL_ITEMS: NavItem[] = [
-  { href: "/jadwal", label: "Jadwal", icon: CalendarDays },
-  { href: "/absensi", label: "Absensi", icon: CheckSquare },
-  { href: "/laporan", label: "Laporan", icon: FileText },
-  { href: "/riwayat", label: "Riwayat", icon: History },
+  { href: "/jadwal", label: "Jadwal", icon: IconJadwal },
+  { href: "/absensi", label: "Absensi", icon: IconAbsensi },
+  { href: "/laporan", label: "Laporan", icon: IconLaporan },
+  { href: "/riwayat", label: "Riwayat", icon: IconRiwayat },
 ];
 
 const JADWAL_SUBMENU: NavItem[] = [
-  { href: "/jadwal", label: "Kanvas Jadwal", icon: CalendarDays },
+  { href: "/jadwal", label: "Kanvas Jadwal", icon: IconJadwal },
   { href: "/jadwal/struktur-waktu", label: "Struktur Waktu", icon: Clock },
 ];
 

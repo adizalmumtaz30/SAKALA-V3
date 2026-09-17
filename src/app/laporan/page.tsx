@@ -11,7 +11,7 @@ import {
 import { ATTENDANCE_STATUS_LABEL } from "@/lib/domain/attendance";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { FileText } from "lucide-react";
+import { IconLaporan } from "@/components/icons";
 
 function firstDayOfMonth() {
   const now = new Date();
@@ -68,7 +68,7 @@ export default async function LaporanPage() {
         <div className="mt-2 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
           {byTeacher.length === 0 ? (
             <EmptyState
-              icon={<FileText size={16} strokeWidth={1.75} />}
+              icon={<IconLaporan size={16} strokeWidth={1.75} />}
               message="Belum ada beban mengajar untuk dihitung."
             />
           ) : (
@@ -91,7 +91,7 @@ export default async function LaporanPage() {
         <div className="mt-2 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
           {byClass.length === 0 ? (
             <EmptyState
-              icon={<FileText size={16} strokeWidth={1.75} />}
+              icon={<IconLaporan size={16} strokeWidth={1.75} />}
               message="Belum ada beban mengajar untuk dihitung."
             />
           ) : (
@@ -117,7 +117,7 @@ export default async function LaporanPage() {
         <div className="mt-2 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
           {attendanceSummary.length === 0 ? (
             <EmptyState
-              icon={<FileText size={16} strokeWidth={1.75} />}
+              icon={<IconLaporan size={16} strokeWidth={1.75} />}
               message="Belum ada catatan absensi pada rentang ini."
             />
           ) : (

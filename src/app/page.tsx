@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { Users, BookOpen, LayoutGrid, Scale, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
+import {
+  IconGuru,
+  IconMapel,
+  IconKelas,
+  IconBebanMengajar,
+} from "@/components/icons";
 import { createClient } from "@/lib/supabase/server";
 import { getPrimarySchool } from "@/lib/data-access/school";
 import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
@@ -68,28 +74,28 @@ export default async function BerandaPage() {
   const checklist = [
     {
       label: "Data guru",
-      icon: Users,
+      icon: IconGuru,
       ready: teachers.some((t) => t.status === "active"),
       href: "/guru",
       count: teachers.length,
     },
     {
       label: "Data mata pelajaran",
-      icon: BookOpen,
+      icon: IconMapel,
       ready: subjects.some((s) => s.status === "active"),
       href: "/mapel",
       count: subjects.length,
     },
     {
       label: "Data kelas",
-      icon: LayoutGrid,
+      icon: IconKelas,
       ready: classes.some((c) => c.status === "active"),
       href: "/kelas",
       count: classes.length,
     },
     {
       label: "Beban mengajar",
-      icon: Scale,
+      icon: IconBebanMengajar,
       ready: assignments.some((a) => a.status === "active"),
       href: "/beban-mengajar",
       count: assignments.length,

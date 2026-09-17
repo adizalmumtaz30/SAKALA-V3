@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Scale } from "lucide-react";
+import { IconBebanMengajar } from "@/components/icons";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
 import { listTeachers } from "@/lib/data-access/teacher";
@@ -79,14 +79,14 @@ export default async function BebanMengajarPage() {
       <div className="mt-8 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
         {assignments.length === 0 && (
           <EmptyState
-            icon={<Scale size={16} strokeWidth={1.75} />}
+            icon={<IconBebanMengajar size={16} strokeWidth={1.75} />}
             message="Belum ada beban mengajar untuk tahun ajaran ini."
           />
         )}
         {assignments.map((a) => (
           <EntityRow
             key={a.id}
-            icon={<Scale size={15} strokeWidth={1.75} />}
+            icon={<IconBebanMengajar size={15} strokeWidth={1.75} />}
             name={`${a.teacherName} — ${a.subjectName} — ${a.className}`}
             meta={`${a.targetJp} JP/minggu`}
             status={a.status}

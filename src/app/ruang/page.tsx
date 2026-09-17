@@ -1,4 +1,4 @@
-import { DoorOpen } from "lucide-react";
+import { IconRuang } from "@/components/icons";
 import { createClient } from "@/lib/supabase/server";
 import { listRooms } from "@/lib/data-access/room";
 import { createRoomAction, toggleRoomStatusAction } from "@/lib/application/master-data.actions";
@@ -30,14 +30,14 @@ export default async function RuangPage() {
       <div className="mt-8 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
         {rooms.length === 0 && (
           <EmptyState
-            icon={<DoorOpen size={16} strokeWidth={1.75} />}
+            icon={<IconRuang size={16} strokeWidth={1.75} />}
             message="Belum ada data ruang."
           />
         )}
         {rooms.map((room) => (
           <EntityRow
             key={room.id}
-            icon={<DoorOpen size={15} strokeWidth={1.75} />}
+            icon={<IconRuang size={15} strokeWidth={1.75} />}
             name={room.name}
             status={room.status}
             id={room.id}

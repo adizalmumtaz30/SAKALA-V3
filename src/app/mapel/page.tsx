@@ -1,4 +1,4 @@
-import { BookOpen } from "lucide-react";
+import { IconMapel } from "@/components/icons";
 import { createClient } from "@/lib/supabase/server";
 import { listSubjects } from "@/lib/data-access/subject";
 import { createSubjectAction, toggleSubjectStatusAction } from "@/lib/application/master-data.actions";
@@ -30,14 +30,14 @@ export default async function MapelPage() {
       <div className="mt-8 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
         {subjects.length === 0 && (
           <EmptyState
-            icon={<BookOpen size={16} strokeWidth={1.75} />}
+            icon={<IconMapel size={16} strokeWidth={1.75} />}
             message="Belum ada data mata pelajaran."
           />
         )}
         {subjects.map((subject) => (
           <EntityRow
             key={subject.id}
-            icon={<BookOpen size={15} strokeWidth={1.75} />}
+            icon={<IconMapel size={15} strokeWidth={1.75} />}
             name={subject.name}
             status={subject.status}
             id={subject.id}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { History } from "lucide-react";
+import { IconRiwayat } from "@/components/icons";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
 import { listHistory } from "@/lib/data-access/history";
@@ -61,7 +61,7 @@ export default async function RiwayatPage() {
       <div className="mt-6 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
         {entries.length === 0 && (
           <EmptyState
-            icon={<History size={16} strokeWidth={1.75} />}
+            icon={<IconRiwayat size={16} strokeWidth={1.75} />}
             message="Belum ada riwayat perubahan untuk tahun ajaran ini."
           />
         )}

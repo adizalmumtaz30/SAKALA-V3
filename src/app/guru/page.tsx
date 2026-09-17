@@ -1,4 +1,4 @@
-import { Users } from "lucide-react";
+import { IconGuru } from "@/components/icons";
 import { createClient } from "@/lib/supabase/server";
 import { listTeachers } from "@/lib/data-access/teacher";
 import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
@@ -58,14 +58,14 @@ export default async function GuruPage({
       <div className="mt-8 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
         {teachers.length === 0 && (
           <EmptyState
-            icon={<Users size={16} strokeWidth={1.75} />}
+            icon={<IconGuru size={16} strokeWidth={1.75} />}
             message="Belum ada data guru."
           />
         )}
         {teachers.map((teacher) => (
           <EntityRow
             key={teacher.id}
-            icon={<Users size={15} strokeWidth={1.75} />}
+            icon={<IconGuru size={15} strokeWidth={1.75} />}
             name={teacher.name}
             status={teacher.status}
             id={teacher.id}
