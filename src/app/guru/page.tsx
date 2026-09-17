@@ -1,15 +1,33 @@
 import { Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { listTeachers } from "@/lib/data-access/teacher";
+import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
+import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
 import { createTeacherAction, toggleTeacherStatusAction } from "@/lib/application/master-data.actions";
 import { NameOnlyCreateForm } from "@/components/master-data/NameOnlyCreateForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { GuruDetailDrawer } from "@/components/master-data/GuruDetailDrawer";
 
-export default async function GuruPage() {
+export default async function GuruPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ detail?: string }>;
+}) {
+  const { detail } = await searchParams;
   const supabase = await createClient();
   const teachers = await listTeachers(supabase);
+
+  const selectedTeacher = detail ? teachers.find((t) => t.id === detail) : undefined;
+  let selectedAssignments: Awaited<ReturnType<typeof listTeachingAssignmentsForYear>> = [];
+  if (selectedTeacher) {
+    const academicYear = await getWorkspaceAcademicYear(supabase);
+    if (academicYear) {
+      const all = await listTeachingAssignmentsForYear(supabase, academicYear.id);
+      selectedAssignments = all.filter((a) => a.teacherId === selectedTeacher.id);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-10">
@@ -42,9 +60,14 @@ export default async function GuruPage() {
             status={teacher.status}
             id={teacher.id}
             toggleAction={toggleTeacherStatusAction}
+            detailHref={`/guru?detail=${teacher.id}`}
           />
         ))}
       </div>
+
+      {selectedTeacher && (
+        <GuruDetailDrawer teacher={selectedTeacher} assignments={selectedAssignments} />
+      )}
     </div>
   );
 }
