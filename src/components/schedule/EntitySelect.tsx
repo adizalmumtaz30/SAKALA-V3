@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { SmartSelect } from "@/components/ui/SmartSelect";
 
 interface Option {
   id: string;
@@ -19,16 +20,12 @@ export function EntitySelect({
   const router = useRouter();
 
   return (
-    <select
-      value={selectedId ?? ""}
-      onChange={(e) => router.push(`/jadwal?view=${view}&entity=${e.target.value}`)}
-      className="rounded-lg border border-hairline-strong bg-surface px-3 py-1.5 text-[12.5px] text-ink outline-none focus:border-accent-teal"
-    >
-      {options.map((o) => (
-        <option key={o.id} value={o.id}>
-          {o.name}
-        </option>
-      ))}
-    </select>
+    <div className="w-56">
+      <SmartSelect
+        options={options}
+        value={selectedId ?? ""}
+        onChange={(id) => router.push(`/jadwal?view=${view}&entity=${id}`)}
+      />
+    </div>
   );
 }

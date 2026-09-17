@@ -5,6 +5,7 @@ import {
   createBebanMengajarAction,
   type FormState,
 } from "@/lib/application/teaching-assignment.actions";
+import { SmartSelect } from "@/components/ui/SmartSelect";
 import type { Teacher } from "@/lib/domain/teacher";
 import type { Subject } from "@/lib/domain/subject";
 import type { SchoolClass } from "@/lib/domain/class";
@@ -37,42 +38,24 @@ export function CreateBebanMengajarForm({
         <label className="mb-1.5 block text-[12.5px] text-ink-muted">
           Guru
         </label>
-        <select
+        <SmartSelect
           name="teacherId"
           required
-          defaultValue=""
-          className="w-full rounded-lg border border-hairline-strong bg-surface px-3.5 py-2.5 text-[13.5px] text-ink outline-none focus:border-accent-teal"
-        >
-          <option value="" disabled>
-            Pilih guru
-          </option>
-          {teachers.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
+          placeholder="Pilih guru"
+          options={teachers.map((t) => ({ id: t.id, name: t.name }))}
+        />
       </div>
 
       <div>
         <label className="mb-1.5 block text-[12.5px] text-ink-muted">
           Mata Pelajaran
         </label>
-        <select
+        <SmartSelect
           name="subjectId"
           required
-          defaultValue=""
-          className="w-full rounded-lg border border-hairline-strong bg-surface px-3.5 py-2.5 text-[13.5px] text-ink outline-none focus:border-accent-teal"
-        >
-          <option value="" disabled>
-            Pilih mata pelajaran
-          </option>
-          {subjects.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
+          placeholder="Pilih mata pelajaran"
+          options={subjects.map((s) => ({ id: s.id, name: s.name }))}
+        />
       </div>
 
       <div>
