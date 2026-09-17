@@ -40,3 +40,33 @@ export async function listTeachers(
   if (error) throw error;
   return (data as TeacherRow[]).map(toDomain);
 }
+
+/**
+ * Import (Bagian 16, LOCKED): never silently overwrite official data. Names
+ * already present (case-insensitive) are skipped, not duplicated or updated.
+ */
+export async function bulkImportTeachers(
+  supabase: SupabaseClient,
+  input: { schoolId: string | null; names: string[] },
+): Promise<{ added: number; skipped: number }> {
+  const existing = await listTeachers(supabase);
+  const existingLower = new Set(existing.map((t) => t.name.trim().toLowerCase()));
+
+  const toInsert = input.names.filter(
+    (n) => !existingLower.has(n.trim().toLowerCase()),
+  );
+  const skipped = input.names.length - toInsert.length;
+
+  if (toInsert.length === 0) return { added: 0, skipped };
+
+  const { error } = await supabase.from("teacher").insert(
+    toInsert.map((name) => ({
+      school_id: input.schoolId,
+      name: name.trim(),
+      status: "active",
+    })),
+  );
+  if (error) throw error;
+
+  return { added: toInsert.length, skipped };
+}

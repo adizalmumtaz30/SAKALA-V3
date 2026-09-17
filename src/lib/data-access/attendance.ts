@@ -38,6 +38,23 @@ export async function listAttendanceForDate(
   return (data as unknown as AttendanceRow[]).map(toDomain);
 }
 
+export async function listAttendanceForRange(
+  supabase: SupabaseClient,
+  academicYearId: string,
+  startDate: string,
+  endDate: string,
+): Promise<AttendanceRecord[]> {
+  const { data, error } = await supabase
+    .from("attendance")
+    .select("*, teacher:teacher_id(name)")
+    .eq("academic_year_id", academicYearId)
+    .gte("date", startDate)
+    .lte("date", endDate);
+
+  if (error) throw error;
+  return (data as unknown as AttendanceRow[]).map(toDomain);
+}
+
 export async function upsertAttendance(
   supabase: SupabaseClient,
   input: {
