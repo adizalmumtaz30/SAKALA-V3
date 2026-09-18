@@ -12,7 +12,7 @@ export default async function RuangPage() {
   const rooms = await listRooms(supabase);
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
+    <div className="mx-auto max-w-6xl px-6 py-10">
       <PageHeader
         kicker="DATA"
         title="Ruang"
@@ -27,12 +27,12 @@ export default async function RuangPage() {
         />
       </div>
 
-      <div className="mt-8 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
+      <div className="mt-8 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
         {rooms.length === 0 && (
-          <EmptyState
+          <div className="col-span-full rounded-xl border border-hairline bg-surface"><EmptyState
             icon={<IconRuang size={16} strokeWidth={1.75} />}
             message="Belum ada data ruang."
-          />
+          /></div>
         )}
         {rooms.map((room) => (
           <EntityRow

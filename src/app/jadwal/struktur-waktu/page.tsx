@@ -36,7 +36,7 @@ export default async function StrukturWaktuPage() {
   const activeDays = DAYS.filter((d) => (slotsByDay.get(d)?.length ?? 0) > 0);
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-10">
+    <div className="mx-auto max-w-7xl px-6 py-10">
       <PageHeader
         kicker="JADWAL · PENGATURAN JADWAL"
         title="Struktur Waktu"

@@ -120,7 +120,7 @@ export default async function BerandaPage() {
   const readyForSchedule = assignments.length > 0 && !hasBlockingIssue;
 
   return (
-    <div className="relative mx-auto max-w-3xl px-6 py-10">
+    <div className="relative mx-auto max-w-6xl px-6 py-10">
       {/* Atmospheric heritage layer — discovered, not displayed */}
       <div
         aria-hidden

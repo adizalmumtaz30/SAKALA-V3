@@ -5,6 +5,7 @@ import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
 import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
 import { listAttendanceForTeacher } from "@/lib/data-access/attendance";
 import { listHistoryForEntity } from "@/lib/data-access/history";
+import { computeDeactivationWarnings } from "@/lib/application/diagnostics";
 import { createTeacherAction, toggleTeacherStatusAction } from "@/lib/application/master-data.actions";
 import { NameOnlyCreateForm } from "@/components/master-data/NameOnlyCreateForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
@@ -19,7 +20,14 @@ export default async function GuruPage({
 }) {
   const { detail } = await searchParams;
   const supabase = await createClient();
-  const teachers = await listTeachers(supabase);
+  const academicYearForDeps = await getWorkspaceAcademicYear(supabase);
+  const [teachers, allAssignments] = await Promise.all([
+    listTeachers(supabase),
+    academicYearForDeps
+      ? listTeachingAssignmentsForYear(supabase, academicYearForDeps.id)
+      : Promise.resolve([]),
+  ]);
+  const { byTeacher } = computeDeactivationWarnings(allAssignments);
 
   const selectedTeacher = detail ? teachers.find((t) => t.id === detail) : undefined;
   let selectedAssignments: Awaited<ReturnType<typeof listTeachingAssignmentsForYear>> = [];
@@ -40,7 +48,7 @@ export default async function GuruPage({
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
+    <div className="mx-auto max-w-6xl px-6 py-10">
       <PageHeader
         kicker="DATA"
         title="Guru"
@@ -55,12 +63,12 @@ export default async function GuruPage({
         />
       </div>
 
-      <div className="mt-8 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
+      <div className="mt-8 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
         {teachers.length === 0 && (
-          <EmptyState
+          <div className="col-span-full rounded-xl border border-hairline bg-surface"><EmptyState
             icon={<IconGuru size={16} strokeWidth={1.75} />}
             message="Belum ada data guru."
-          />
+          /></div>
         )}
         {teachers.map((teacher) => (
           <EntityRow
@@ -70,6 +78,7 @@ export default async function GuruPage({
             status={teacher.status}
             id={teacher.id}
             toggleAction={toggleTeacherStatusAction}
+            dependencyWarnings={byTeacher.get(teacher.id)}
             detailHref={`/guru?detail=${teacher.id}`}
           />
         ))}

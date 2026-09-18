@@ -42,7 +42,7 @@ export function ScheduleCanvas({ timeSlots }: { timeSlots: TimeSlot[] }) {
           {periodNumbers.map((period) => (
             <tr key={period} className="border-b border-hairline last:border-b-0">
               <td className="px-3 py-2 align-top text-[11px] text-ink-faint">
-                P{period}
+                Jam ke-{period}
               </td>
               {activeDays.map((day) => {
                 const slot = cell(day, period);

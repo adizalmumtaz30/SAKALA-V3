@@ -3,6 +3,8 @@ import { IconKelas } from "@/components/icons";
 import { createClient } from "@/lib/supabase/server";
 import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
 import { listClassesForYear } from "@/lib/data-access/class";
+import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
+import { computeDeactivationWarnings } from "@/lib/application/diagnostics";
 import { toggleClassStatusAction } from "@/lib/application/master-data.actions";
 import { CreateClassForm } from "@/components/master-data/CreateClassForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
@@ -33,10 +35,14 @@ export default async function KelasPage() {
     );
   }
 
-  const classes = await listClassesForYear(supabase, academicYear.id);
+  const [classes, assignments] = await Promise.all([
+    listClassesForYear(supabase, academicYear.id),
+    listTeachingAssignmentsForYear(supabase, academicYear.id),
+  ]);
+  const { byClass } = computeDeactivationWarnings(assignments);
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
+    <div className="mx-auto max-w-6xl px-6 py-10">
       <PageHeader
         kicker="DATA"
         title="Kelas"
@@ -47,12 +53,12 @@ export default async function KelasPage() {
         <CreateClassForm academicYearId={academicYear.id} />
       </div>
 
-      <div className="mt-8 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
+      <div className="mt-8 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
         {classes.length === 0 && (
-          <EmptyState
+          <div className="col-span-full rounded-xl border border-hairline bg-surface"><EmptyState
             icon={<IconKelas size={16} strokeWidth={1.75} />}
             message="Belum ada data kelas untuk tahun ajaran ini."
-          />
+          /></div>
         )}
         {classes.map((schoolClass) => (
           <EntityRow
@@ -63,6 +69,7 @@ export default async function KelasPage() {
             status={schoolClass.status}
             id={schoolClass.id}
             toggleAction={toggleClassStatusAction}
+            dependencyWarnings={byClass.get(schoolClass.id)}
           />
         ))}
       </div>

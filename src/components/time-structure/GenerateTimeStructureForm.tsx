@@ -49,7 +49,7 @@ export function GenerateTimeStructureForm({
       <div className="flex gap-3">
         <div>
           <label className="mb-1.5 block text-[12.5px] text-ink-muted">
-            Jumlah Periode
+            Jumlah Jam Pelajaran
           </label>
           <input
             name="periodCount"
@@ -88,7 +88,7 @@ export function GenerateTimeStructureForm({
       </div>
 
       <p className="text-[12px] text-ink-faint">
-        Semua periode dibuat sebagai slot Mengajar terlebih dahulu. Tandai
+        Semua jam dibuat sebagai slot Mengajar terlebih dahulu. Tandai
         istirahat/kegiatan/non-aktif setelahnya di daftar di bawah.
       </p>
 

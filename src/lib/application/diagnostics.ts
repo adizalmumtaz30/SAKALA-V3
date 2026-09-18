@@ -125,3 +125,52 @@ export function computeDiagnosticIssues(input: DiagnosticInput): DiagnosticIssue
 
   return issues;
 }
+
+/**
+ * Dependency yang menghalangi penonaktifan, per-entitas (Bagian E.2.1).
+ * Dihitung dari data yang SAMA dengan computeDiagnosticIssues — bukan
+ * sumber kebenaran kedua. Dipakai ConfirmDialog untuk menjelaskan dampak
+ * konkret, bukan "Apakah Anda yakin?" generik.
+ */
+export function computeDeactivationWarnings(
+  assignments: TeachingAssignment[],
+): {
+  byTeacher: Map<string, string[]>;
+  bySubject: Map<string, string[]>;
+  byClass: Map<string, string[]>;
+} {
+  const byTeacher = new Map<string, string[]>();
+  const bySubject = new Map<string, string[]>();
+  const byClass = new Map<string, string[]>();
+
+  const active = assignments.filter((a) => a.status === "active");
+
+  function push(map: Map<string, string[]>, key: string, line: string) {
+    const existing = map.get(key);
+    if (existing) existing.push(line);
+    else map.set(key, [line]);
+  }
+
+  for (const a of active) {
+    push(byTeacher, a.teacherId, `${a.subjectName} — ${a.className} (${a.targetJp} JP)`);
+    push(bySubject, a.subjectId, `${a.teacherName} — ${a.className} (${a.targetJp} JP)`);
+    push(byClass, a.classId, `${a.subjectName} — ${a.teacherName} (${a.targetJp} JP)`);
+  }
+
+  function summarize(map: Map<string, string[]>, noun: string) {
+    for (const [key, lines] of map) {
+      const head = `Masih dipakai di ${lines.length} beban mengajar aktif${noun}:`;
+      const shown = lines.slice(0, 3);
+      const rest = lines.length - shown.length;
+      const out = [head, ...shown.map((l) => `• ${l}`)];
+      if (rest > 0) out.push(`• +${rest} lainnya`);
+      map.set(key, out);
+    }
+  }
+
+  summarize(byTeacher, "");
+  summarize(bySubject, "");
+  summarize(byClass, "");
+
+  return { byTeacher, bySubject, byClass };
+}

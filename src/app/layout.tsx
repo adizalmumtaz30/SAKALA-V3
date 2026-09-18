@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppShell } from "@/components/shell/AppShell";
+import { ToastProvider } from "@/components/ui/Toast";
 import { createClient } from "@/lib/supabase/server";
 import { getPrimarySchool } from "@/lib/data-access/school";
 import {
@@ -35,9 +36,11 @@ export default async function RootLayout({
   return (
     <html lang="id" className={`${inter.variable} h-full antialiased`}>
       <body className="h-full">
-        <AppShell school={school} academicYear={academicYear} academicYears={academicYears}>
-          {children}
-        </AppShell>
+        <ToastProvider>
+          <AppShell school={school} academicYear={academicYear} academicYears={academicYears}>
+            {children}
+          </AppShell>
+        </ToastProvider>
       </body>
     </html>
   );

@@ -53,7 +53,7 @@ export default async function BebanMengajarPage() {
     activeClasses.length === 0;
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
+    <div className="mx-auto max-w-7xl px-6 py-10">
       <PageHeader
         kicker="DATA"
         title="Beban Mengajar"
@@ -76,12 +76,12 @@ export default async function BebanMengajarPage() {
         )}
       </div>
 
-      <div className="mt-8 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
+      <div className="mt-8 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
         {assignments.length === 0 && (
-          <EmptyState
+          <div className="col-span-full rounded-xl border border-hairline bg-surface"><EmptyState
             icon={<IconBebanMengajar size={16} strokeWidth={1.75} />}
             message="Belum ada beban mengajar untuk tahun ajaran ini."
-          />
+          /></div>
         )}
         {assignments.map((a) => (
           <EntityRow

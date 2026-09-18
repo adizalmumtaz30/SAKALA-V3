@@ -26,10 +26,10 @@ export function Drawer({ title, onClose, children }: DrawerProps) {
   return (
     <div className="fixed inset-0 z-50">
       <div
-        className="absolute inset-0 bg-black/40 [animation:drawer-fade-in_200ms_ease-out]"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm [animation:drawer-fade-in_200ms_ease-out]"
         onClick={onClose}
       />
-      <div className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-hairline bg-surface-overlay shadow-2xl [animation:drawer-slide-in_260ms_ease-out]">
+      <div className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-hairline bg-surface-overlay/95 shadow-2xl backdrop-blur-xl [animation:drawer-slide-in_260ms_ease-out]">
         <div className="flex shrink-0 items-center justify-between border-b border-hairline px-5 py-4">
           <h2 className="text-[14px] font-medium text-ink">{title}</h2>
           <button

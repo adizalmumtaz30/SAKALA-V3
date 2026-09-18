@@ -51,7 +51,7 @@ export default async function RiwayatPage() {
   const entries = await listHistory(supabase, academicYear.id);
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
+    <div className="mx-auto max-w-6xl px-6 py-10">
       <PageHeader
         kicker="RIWAYAT"
         title="Riwayat Perubahan"

@@ -1,6 +1,9 @@
 import { IconMapel } from "@/components/icons";
 import { createClient } from "@/lib/supabase/server";
 import { listSubjects } from "@/lib/data-access/subject";
+import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
+import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
+import { computeDeactivationWarnings } from "@/lib/application/diagnostics";
 import { createSubjectAction, toggleSubjectStatusAction } from "@/lib/application/master-data.actions";
 import { NameOnlyCreateForm } from "@/components/master-data/NameOnlyCreateForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
@@ -9,10 +12,17 @@ import { EmptyState } from "@/components/ui/EmptyState";
 
 export default async function MapelPage() {
   const supabase = await createClient();
-  const subjects = await listSubjects(supabase);
+  const academicYear = await getWorkspaceAcademicYear(supabase);
+  const [subjects, assignments] = await Promise.all([
+    listSubjects(supabase),
+    academicYear
+      ? listTeachingAssignmentsForYear(supabase, academicYear.id)
+      : Promise.resolve([]),
+  ]);
+  const { bySubject } = computeDeactivationWarnings(assignments);
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-10">
+    <div className="mx-auto max-w-6xl px-6 py-10">
       <PageHeader
         kicker="DATA"
         title="Mapel"
@@ -27,12 +37,12 @@ export default async function MapelPage() {
         />
       </div>
 
-      <div className="mt-8 divide-y divide-hairline rounded-2xl border border-hairline bg-surface">
+      <div className="mt-8 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
         {subjects.length === 0 && (
-          <EmptyState
+          <div className="col-span-full rounded-xl border border-hairline bg-surface"><EmptyState
             icon={<IconMapel size={16} strokeWidth={1.75} />}
             message="Belum ada data mata pelajaran."
-          />
+          /></div>
         )}
         {subjects.map((subject) => (
           <EntityRow
@@ -42,6 +52,7 @@ export default async function MapelPage() {
             status={subject.status}
             id={subject.id}
             toggleAction={toggleSubjectStatusAction}
+            dependencyWarnings={bySubject.get(subject.id)}
           />
         ))}
       </div>

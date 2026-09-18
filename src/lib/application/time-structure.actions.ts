@@ -27,7 +27,7 @@ export async function generateTimeStructureAction(
   if (!academicYearId) return { error: "Tahun ajaran belum aktif." };
   if (days.length === 0) return { error: "Pilih minimal satu hari." };
   if (!Number.isInteger(periodCount) || periodCount <= 0) {
-    return { error: "Jumlah periode harus lebih dari 0." };
+    return { error: "Jumlah jam pelajaran harus lebih dari 0." };
   }
   if (!startTime) return { error: "Jam mulai wajib diisi." };
   if (!Number.isInteger(durationMinutes) || durationMinutes <= 0) {
@@ -48,7 +48,7 @@ export async function generateTimeStructureAction(
       entityType: "struktur_waktu",
       entityId: null,
       action: "create",
-      summary: `Struktur waktu dibuat — ${inserted} slot (${days.length} hari, ${periodCount} periode)`,
+      summary: `Struktur waktu dibuat — ${inserted} slot (${days.length} hari, ${periodCount} jam)`,
     });
     revalidatePath("/jadwal/struktur-waktu");
     return { success: `${inserted} slot struktur waktu dibuat` };

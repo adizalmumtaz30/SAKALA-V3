@@ -25,7 +25,7 @@ export function TimeSlotRow({ slot }: { slot: TimeSlot }) {
     >
       <input type="hidden" name="id" value={slot.id} />
       <span className="w-14 shrink-0 text-[12.5px] text-ink-faint">
-        P{slot.periodNumber}
+        Jam ke-{slot.periodNumber}
       </span>
       <span className="w-28 shrink-0 text-[12.5px] text-ink-muted">
         {formatTime(slot.startTime)}–{formatTime(slot.endTime)}
