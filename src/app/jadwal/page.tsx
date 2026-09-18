@@ -6,8 +6,12 @@ import { listTimeStructureForYear } from "@/lib/data-access/time-structure";
 import { listTeachers } from "@/lib/data-access/teacher";
 import { listClassesForYear } from "@/lib/data-access/class";
 import { listRooms } from "@/lib/data-access/room";
+import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
+import { listScheduleEntriesForYear } from "@/lib/data-access/schedule";
+import { computeJpProgress } from "@/lib/application/schedule-conflict";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { ScheduleCanvas } from "@/components/schedule/ScheduleCanvas";
+import { InteractiveScheduleCanvas } from "@/components/schedule/InteractiveScheduleCanvas";
+import { JpProgressPanel } from "@/components/schedule/JpProgressPanel";
 import { PerspectiveTabs } from "@/components/schedule/PerspectiveTabs";
 import { EntitySelect } from "@/components/schedule/EntitySelect";
 import { PrintButton } from "@/components/ui/PrintButton";
@@ -86,6 +90,17 @@ export default async function JadwalPage({
       .map((r) => ({ id: r.id, name: r.name }));
   }
 
+  // Data Schedule Engine.
+  const [assignments, entries, allRooms] = await Promise.all([
+    listTeachingAssignmentsForYear(supabase, academicYear.id),
+    listScheduleEntriesForYear(supabase, academicYear.id).catch(() => []),
+    listRooms(supabase),
+  ]);
+  const progress = computeJpProgress(assignments, entries);
+  const roomOptions = allRooms
+    .filter((r) => r.status === "active")
+    .map((r) => ({ id: r.id, name: r.name }));
+
   const selectedId = entity ?? entityOptions[0]?.id;
   const selectedName = entityOptions.find((o) => o.id === selectedId)?.name;
   if (view !== "sekolah") {
@@ -99,7 +114,7 @@ export default async function JadwalPage({
       <PageHeader
         kicker="JADWAL"
         title={contextLabel}
-        description={`Tahun ajaran ${academicYear.label} — struktur kanvas mingguan. Isi jadwal menyusul begitu Scheduling Engine dibangun.`}
+        description={`Tahun ajaran ${academicYear.label} — klik tanda + pada jam mana pun untuk memasukkan pelajaran.`}
         action={
           <div className="flex items-center gap-2">
             <PrintButton label="Cetak Jadwal" />
@@ -133,8 +148,27 @@ export default async function JadwalPage({
         )}
       </div>
 
-      <div className="mt-5">
-        <ScheduleCanvas timeSlots={timeSlots} />
+      <div className="mt-5" data-print="hide">
+        <JpProgressPanel progress={progress} />
+      </div>
+
+      <div className="mt-4">
+        <InteractiveScheduleCanvas
+          academicYearId={academicYear.id}
+          timeSlots={timeSlots}
+          entries={entries}
+          progress={progress}
+          rooms={roomOptions}
+          focusFilter={
+            view === "sekolah" || !selectedId
+              ? undefined
+              : view === "kelas"
+                ? (e) => e.classId === selectedId
+                : view === "guru"
+                  ? (e) => e.teacherId === selectedId
+                  : (e) => e.roomId === selectedId
+          }
+        />
       </div>
     </div>
   );
