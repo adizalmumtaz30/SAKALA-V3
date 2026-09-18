@@ -371,3 +371,74 @@ export async function updateRoomAction(_prev: FormState, formData: FormData): Pr
   revalidatePath("/ruang");
   return result;
 }
+
+// ---------------------------------------------------------------------------
+// Bagian VI.4 — Aksi massal (bulk).
+//
+// Menonaktifkan 15 guru di akhir tahun ajaran seharusnya bukan 15 kali
+// hover->klik. Dipanggil LANGSUNG dari komponen klien (bukan lewat <form>
+// biasa) karena sumber datanya array id dari state pilihan, bukan satu
+// baris form.
+//
+// Sengaja arah eksplisit (aktifkan/nonaktifkan), BUKAN "toggle" massal:
+// pilihan operator sering campur (sebagian aktif, sebagian nonaktif), dan
+// men-toggle itu ambigu -- barisnya akan berakhir di status yang
+// operator tidak duga. Satu ringkasan Riwayat per aksi (bukan per baris)
+// supaya tidak membanjiri log.
+// ---------------------------------------------------------------------------
+
+export interface BulkResult {
+  error?: string;
+  success?: string;
+}
+
+async function bulkSetStatus(
+  table: "teacher" | "subject" | "class" | "room",
+  entityLabelPlural: string,
+  historyEntityType: string,
+  ids: string[],
+  status: "active" | "inactive",
+): Promise<BulkResult> {
+  if (ids.length === 0) return { error: "Belum ada yang dipilih." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from(table)
+    .update({ status })
+    .in("id", ids);
+
+  if (error) return { error: error.message };
+
+  const year = await getWorkspaceAcademicYear(supabase);
+  await recordHistory(supabase, {
+    academicYearId: year?.id ?? null,
+    entityType: historyEntityType,
+    entityId: null,
+    action: status === "active" ? "bulk_activate" : "bulk_deactivate",
+    summary: `${ids.length} ${entityLabelPlural} ${status === "active" ? "diaktifkan" : "dinonaktifkan"} sekaligus`,
+  });
+
+  const PATH_BY_ENTITY: Record<string, string> = {
+    guru: "/guru",
+    mapel: "/mapel",
+    kelas: "/kelas",
+    ruang: "/ruang",
+  };
+  revalidatePath(PATH_BY_ENTITY[historyEntityType]);
+  if (historyEntityType === "mapel" || historyEntityType === "kelas") revalidatePath("/jadwal");
+
+  return { success: `${ids.length} data ${status === "active" ? "diaktifkan" : "dinonaktifkan"}.` };
+}
+
+export async function bulkSetTeacherStatusAction(ids: string[], status: "active" | "inactive") {
+  return bulkSetStatus("teacher", "guru", "guru", ids, status);
+}
+export async function bulkSetSubjectStatusAction(ids: string[], status: "active" | "inactive") {
+  return bulkSetStatus("subject", "mata pelajaran", "mapel", ids, status);
+}
+export async function bulkSetClassStatusAction(ids: string[], status: "active" | "inactive") {
+  return bulkSetStatus("class", "kelas", "kelas", ids, status);
+}
+export async function bulkSetRoomStatusAction(ids: string[], status: "active" | "inactive") {
+  return bulkSetStatus("room", "ruang", "ruang", ids, status);
+}

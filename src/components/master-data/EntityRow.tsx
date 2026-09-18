@@ -26,6 +26,18 @@ interface EntityRowProps {
   viewScheduleHref?: string;
   addScheduleHref?: string;
   renameAction?: (prev: FormState, formData: FormData) => Promise<FormState>;
+  /** Bagian VI.5 — panel inline tambahan (mis. "Duplikat"), dibuka lewat
+   *  ikon sendiri, ditutup lewat callback yang diteruskan ke isinya. Slot
+   *  generik supaya tidak perlu menambah prop baru tiap ada kebutuhan
+   *  serupa di halaman lain. */
+  expandable?: {
+    icon: ReactNode;
+    label: string;
+    render: (close: () => void) => ReactNode;
+  };
+  /** Bagian VI.4 — checkbox seleksi massal. Undefined = halaman ini belum
+   *  ikut fitur bulk (mis. Beban Mengajar, yang sudah punya Duplikat). */
+  selectable?: { checked: boolean; onToggle: () => void };
 }
 
 const emptyState: FormState = {};
@@ -55,8 +67,11 @@ export function EntityRow({
   viewScheduleHref,
   addScheduleHref,
   renameAction,
+  expandable,
+  selectable,
 }: EntityRowProps) {
   const [editing, setEditing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [state, formAction, pending] = useActionState(
     renameAction ?? (async () => emptyState),
     emptyState,
@@ -75,12 +90,22 @@ export function EntityRow({
   }, [pending, state]);
 
   return (
-    <div className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-hairline bg-surface px-4 py-3 transition-all duration-200 hover:border-hairline-strong hover:bg-surface-elevated focus-within:border-hairline-strong">
+    <div>
+    <div className={`group relative flex items-center gap-3 overflow-hidden border border-hairline bg-surface px-4 py-3 transition-all duration-200 hover:border-hairline-strong hover:bg-surface-elevated focus-within:border-hairline-strong ${expandable && expanded ? "rounded-t-xl border-b-0" : "rounded-xl"}`}>
       {accentColor && (
         <span
           aria-hidden
           className="absolute inset-y-0 left-0 w-[3px]"
           style={{ backgroundColor: accentColor }}
+        />
+      )}
+      {selectable && (
+        <input
+          type="checkbox"
+          checked={selectable.checked}
+          onChange={selectable.onToggle}
+          aria-label={`Pilih ${name}`}
+          className="h-4 w-4 shrink-0 accent-accent-teal"
         />
       )}
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-hairline-strong text-ink-muted transition-colors group-hover:text-ink">
@@ -176,6 +201,21 @@ export function EntityRow({
               <Pencil size={14} strokeWidth={1.75} />
             </button>
           )}
+          {expandable && (
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              aria-label={`${expandable.label} ${name}`}
+              title={expandable.label}
+              aria-expanded={expanded}
+              className={`rounded-lg p-1.5 transition-colors ${
+                expanded
+                  ? "bg-surface-focus text-ink"
+                  : "text-ink-faint hover:bg-surface-focus hover:text-ink"
+              }`}
+            >
+              {expandable.icon}
+            </button>
+          )}
           <ToggleStatusButton
             id={id}
             status={status}
@@ -185,6 +225,12 @@ export function EntityRow({
           />
         </div>
       )}
+    </div>
+    {expandable && expanded && (
+      <div className="rounded-b-xl border border-t-0 border-hairline-strong bg-surface-elevated px-4 py-3">
+        {expandable.render(() => setExpanded(false))}
+      </div>
+    )}
     </div>
   );
 }

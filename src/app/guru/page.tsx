@@ -6,12 +6,13 @@ import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assig
 import { listAttendanceForTeacher } from "@/lib/data-access/attendance";
 import { listHistoryForEntity } from "@/lib/data-access/history";
 import { computeDeactivationWarnings } from "@/lib/application/diagnostics";
-import { createTeacherAction, toggleTeacherStatusAction, updateTeacherAction } from "@/lib/application/master-data.actions";
+import { createTeacherAction, toggleTeacherStatusAction, updateTeacherAction, bulkSetTeacherStatusAction } from "@/lib/application/master-data.actions";
 import { NameOnlyCreateForm } from "@/components/master-data/NameOnlyCreateForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { GuruDetailDrawer } from "@/components/master-data/GuruDetailDrawer";
+import { SelectableEntityGrid } from "@/components/master-data/SelectableEntityGrid";
 
 export default async function GuruPage({
   searchParams,
@@ -63,28 +64,35 @@ export default async function GuruPage({
         />
       </div>
 
-      <div className="mt-8 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-        {teachers.length === 0 && (
-          <div className="col-span-full rounded-xl border border-hairline bg-surface"><EmptyState
+      <div className="mt-8">
+        {teachers.length === 0 ? (
+          <div className="rounded-xl border border-hairline bg-surface"><EmptyState
             icon={<IconGuru size={16} strokeWidth={1.75} />}
             message="Belum ada data guru."
           /></div>
-        )}
-        {teachers.map((teacher) => (
-          <EntityRow
-            key={teacher.id}
-            icon={<IconGuru size={15} strokeWidth={1.75} />}
-            name={teacher.name}
-            status={teacher.status}
-            id={teacher.id}
-            toggleAction={toggleTeacherStatusAction}
-            dependencyWarnings={byTeacher.get(teacher.id)}
-            detailHref={`/guru?detail=${teacher.id}`}
-            viewScheduleHref={`/jadwal?view=guru&entity=${teacher.id}`}
-            addScheduleHref={`/jadwal?view=guru&entity=${teacher.id}`}
-            renameAction={updateTeacherAction}
+        ) : (
+          <SelectableEntityGrid
+            items={teachers}
+            bulkActivate={(ids) => bulkSetTeacherStatusAction(ids, "active")}
+            bulkDeactivate={(ids) => bulkSetTeacherStatusAction(ids, "inactive")}
+            renderRow={(teacher, selectable) => (
+              <EntityRow
+                key={teacher.id}
+                icon={<IconGuru size={15} strokeWidth={1.75} />}
+                name={teacher.name}
+                status={teacher.status}
+                id={teacher.id}
+                toggleAction={toggleTeacherStatusAction}
+                dependencyWarnings={byTeacher.get(teacher.id)}
+                detailHref={`/guru?detail=${teacher.id}`}
+                viewScheduleHref={`/jadwal?view=guru&entity=${teacher.id}`}
+                addScheduleHref={`/jadwal?view=guru&entity=${teacher.id}`}
+                renameAction={updateTeacherAction}
+                selectable={selectable}
+              />
+            )}
           />
-        ))}
+        )}
       </div>
 
       {selectedTeacher && (
