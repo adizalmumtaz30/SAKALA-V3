@@ -1,7 +1,7 @@
 import { IconRuang } from "@/components/icons";
 import { createClient } from "@/lib/supabase/server";
 import { listRooms } from "@/lib/data-access/room";
-import { createRoomAction, toggleRoomStatusAction } from "@/lib/application/master-data.actions";
+import { createRoomAction, toggleRoomStatusAction, updateRoomAction } from "@/lib/application/master-data.actions";
 import { NameOnlyCreateForm } from "@/components/master-data/NameOnlyCreateForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -42,6 +42,8 @@ export default async function RuangPage() {
             status={room.status}
             id={room.id}
             toggleAction={toggleRoomStatusAction}
+            viewScheduleHref={`/jadwal?view=ruang&entity=${room.id}`}
+            renameAction={updateRoomAction}
           />
         ))}
       </div>

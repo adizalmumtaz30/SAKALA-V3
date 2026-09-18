@@ -1,34 +1,46 @@
 /**
  * SCHEDULE ENGINE — model domain.
  *
- * Satu ScheduleEntry = satu Beban Mengajar yang ditempatkan pada satu slot
- * waktu. Kelas tidak disimpan ulang di sini; kelas melekat pada Beban
- * Mengajar, dan menduplikasinya membuka peluang data yang saling
- * bertentangan (Bagian 20 — penjadwalan membaca target JP, tidak pernah
- * menulis baliknya).
+ * Satu ScheduleEntry = satu Beban Mengajar yang ditempatkan pada satu
+ * hari + jam ke-. Posisi (day, periodNumber) dan teacher/subject/class
+ * disimpan LANGSUNG di baris ini (bukan cuma lewat FK ke
+ * teachingAssignmentId) — desain ini datang dari skema yang sudah live di
+ * database, bukan pilihan saya: dengan begitu bentrok guru/kelas pada jam
+ * yang sama bisa ditegakkan sebagai UNIQUE CONSTRAINT oleh database
+ * sendiri (no_teacher_clash, no_class_clash), lapisan pertahanan yang
+ * tidak bisa dilewati siapa pun — di atas pengecekan aplikasi yang
+ * memberi pesan bahasa operator sebelum constraint itu sempat tersentuh.
  */
+export type ScheduleSource = "manual" | "auto";
+
 export interface ScheduleEntry {
   id: string;
   academicYearId: string;
-  timeSlotId: string;
   teachingAssignmentId: string;
   roomId: string | null;
 
-  // Didenormalisasi oleh join di data-access untuk keperluan tampilan —
-  // tidak disimpan di tabel.
   teacherId: string;
-  teacherName: string;
   subjectId: string;
-  subjectName: string;
-  subjectColorKey: string | null;
   classId: string;
-  className: string;
-  roomName: string | null;
-
-  // Posisi slot, ikut dibawa supaya deteksi bentrok tidak perlu query ulang.
   day: string;
   periodNumber: number;
+
+  /** 'auto' disediakan untuk penjadwal otomatis di masa depan — TIDAK
+   *  dipakai/dibangun di sini (AI Scheduling dikecualikan). */
+  source: ScheduleSource;
+  /** true = tidak boleh ditimpa proses otomatis apa pun nanti. Penempatan
+   *  manual selalu locked sejak dibuat. */
+  locked: boolean;
+
+  // Didenormalisasi oleh join di data-access untuk keperluan tampilan —
+  // tidak disimpan di kolomnya sendiri.
+  teacherName: string;
+  subjectName: string;
+  subjectColorKey: string | null;
+  className: string;
+  roomName: string | null;
 }
+
 
 /**
  * Rekap pemenuhan target JP per Beban Mengajar. Dihitung, tidak disimpan —

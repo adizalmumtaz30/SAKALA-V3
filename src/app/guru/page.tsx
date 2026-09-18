@@ -6,7 +6,7 @@ import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assig
 import { listAttendanceForTeacher } from "@/lib/data-access/attendance";
 import { listHistoryForEntity } from "@/lib/data-access/history";
 import { computeDeactivationWarnings } from "@/lib/application/diagnostics";
-import { createTeacherAction, toggleTeacherStatusAction } from "@/lib/application/master-data.actions";
+import { createTeacherAction, toggleTeacherStatusAction, updateTeacherAction } from "@/lib/application/master-data.actions";
 import { NameOnlyCreateForm } from "@/components/master-data/NameOnlyCreateForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -80,6 +80,9 @@ export default async function GuruPage({
             toggleAction={toggleTeacherStatusAction}
             dependencyWarnings={byTeacher.get(teacher.id)}
             detailHref={`/guru?detail=${teacher.id}`}
+            viewScheduleHref={`/jadwal?view=guru&entity=${teacher.id}`}
+            addScheduleHref={`/jadwal?view=guru&entity=${teacher.id}`}
+            renameAction={updateTeacherAction}
           />
         ))}
       </div>

@@ -54,12 +54,15 @@ export function InteractiveScheduleCanvas({
     [activeSlots],
   );
 
+  // Entri tidak lagi punya timeSlotId (skema live menyimpan day+period_number
+  // langsung) — kelompokkan pakai kunci komposit itu.
   const entriesBySlot = useMemo(() => {
     const map = new Map<string, ScheduleEntry[]>();
     for (const e of entries) {
-      const list = map.get(e.timeSlotId) ?? [];
+      const key = `${e.day}__${e.periodNumber}`;
+      const list = map.get(key) ?? [];
       list.push(e);
-      map.set(e.timeSlotId, list);
+      map.set(key, list);
     }
     return map;
   }, [entries]);
@@ -121,7 +124,7 @@ export function InteractiveScheduleCanvas({
                     );
                   }
 
-                  const slotEntries = entriesBySlot.get(slot.id) ?? [];
+                  const slotEntries = entriesBySlot.get(`${day}__${period}`) ?? [];
 
                   if (slot.type === "mengajar") {
                     return (
@@ -220,7 +223,7 @@ export function InteractiveScheduleCanvas({
         <SlotEditor
           academicYearId={academicYearId}
           slot={openSlot}
-          entries={entriesBySlot.get(openSlot.id) ?? []}
+          entries={entriesBySlot.get(`${openSlot.day}__${openSlot.periodNumber}`) ?? []}
           progress={progress}
           rooms={rooms}
           moveTargets={teachingSlots.filter((s) => s.id !== openSlot.id)}

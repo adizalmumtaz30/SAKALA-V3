@@ -22,12 +22,20 @@ export interface ScheduleActionState {
   success?: string;
 }
 
+const CLASH_MESSAGE: Record<"teacher" | "class" | "duplicate", string> = {
+  teacher: "Guru ini sudah mengajar di jam yang sama (baru saja ditempatkan dari perangkat lain).",
+  class: "Kelas ini sudah menerima pelajaran lain di jam yang sama (baru saja ditempatkan dari perangkat lain).",
+  duplicate: "Data ini sudah ada di jam tersebut.",
+};
+
 /**
- * Menempatkan satu Beban Mengajar ke satu slot.
+ * Menempatkan satu Beban Mengajar ke satu hari + jam ke-.
  *
  * Urutan sengaja: validasi DULU, simpan KEMUDIAN. Bentrok harus diketahui
  * sebelum commit, bukan setelah — ini aturan non-negotiable yang lahir dari
- * insiden nyata di V2.
+ * insiden nyata di V2. Constraint database (no_teacher_clash/no_class_clash)
+ * tetap jadi jaring pengaman kedua untuk kasus dua operator menyimpan
+ * bersamaan.
  */
 export async function assignScheduleAction(
   _prev: ScheduleActionState,
@@ -71,7 +79,8 @@ export async function assignScheduleAction(
 
   const conflicts = findConflicts(
     {
-      timeSlotId,
+      day: slot.day,
+      periodNumber: slot.periodNumber,
       teacherId: assignment.teacherId,
       teacherName: assignment.teacherName,
       classId: assignment.classId,
@@ -86,22 +95,19 @@ export async function assignScheduleAction(
     return { conflicts: conflicts.map((c) => c.message) };
   }
 
-  try {
-    await createScheduleEntry(supabase, {
-      academicYearId,
-      timeSlotId,
-      teachingAssignmentId,
-      roomId,
-    });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : String(e);
-    // Unique constraint (time_slot_id, teaching_assignment_id).
-    if (message.includes("duplicate") || message.includes("unique")) {
-      return {
-        error: `${assignment.subjectName} untuk ${assignment.className} sudah ada di jam ini.`,
-      };
-    }
-    return { error: "Gagal menyimpan jadwal. Coba lagi." };
+  const result = await createScheduleEntry(supabase, {
+    academicYearId,
+    teachingAssignmentId,
+    teacherId: assignment.teacherId,
+    subjectId: assignment.subjectId,
+    classId: assignment.classId,
+    day: slot.day,
+    periodNumber: slot.periodNumber,
+    roomId,
+  });
+
+  if (!result.ok) {
+    return { conflicts: [CLASH_MESSAGE[result.clash === "unknown" ? "duplicate" : result.clash]] };
   }
 
   await recordHistory(supabase, {
@@ -179,7 +185,8 @@ export async function moveScheduleEntryAction(
 
   const conflicts = findConflicts(
     {
-      timeSlotId: targetSlotId,
+      day: slot.day,
+      periodNumber: slot.periodNumber,
       teacherId: entry.teacherId,
       teacherName: entry.teacherName,
       classId: entry.classId,
@@ -195,7 +202,14 @@ export async function moveScheduleEntryAction(
     return { conflicts: conflicts.map((c) => c.message) };
   }
 
-  await moveScheduleEntry(supabase, id, targetSlotId);
+  const result = await moveScheduleEntry(supabase, id, {
+    day: slot.day,
+    periodNumber: slot.periodNumber,
+  });
+
+  if (!result.ok) {
+    return { conflicts: [CLASH_MESSAGE[result.clash === "unknown" ? "duplicate" : result.clash]] };
+  }
 
   await recordHistory(supabase, {
     academicYearId,
