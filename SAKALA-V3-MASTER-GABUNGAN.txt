@@ -1,0 +1,1185 @@
+================================================================================
+SAKALA V3 — MASTER DOKUMEN GABUNGAN
+Desain Produk + Schedule Engine + Phase 10 UI/UX + Konsolidasi V2→V3
+================================================================================
+
+Status dokumen : MASTER REFERENCE TERGABUNG
+Disusun        : 18 September 2026
+Sumber         : 6 dokumen desain (TXT) + 1 dokumen konsolidasi audit (MD)
+Verifikasi     : Status "SUDAH ADA / BELUM ADA" dicek langsung terhadap kode
+                 repo adizalmumtaz30/SAKALA-V3 (bukan dari judul commit)
+
+CARA MEMBACA DOKUMEN INI
+  BAGIAN A  Prinsip & filosofi yang mengikat semuanya (LOCKED)
+  BAGIAN B  Arsitektur & model data
+  BAGIAN C  Schedule Engine (otak sistem)
+  BAGIAN D  Sistem UI/UX (Phase 10.x)
+  BAGIAN E  Direktif pemilik produk & hasil audit konsolidasi
+  BAGIAN F  STATUS: apa yang sudah ada, apa yang belum
+  BAGIAN G  JADWAL PENGERJAAN
+
+ATURAN KONFLIK
+  Jika dua sumber bertentangan, urutan kemenangan:
+  1. Direktif Pemilik Produk (Bagian E.1) — instruksi langsung, bukan saran
+  2. Keputusan LOCKED di dokumen desain asli (Bagian A–D)
+  3. Rekomendasi hasil audit (Bagian E.2–E.3)
+
+DIKECUALIKAN TOTAL DARI SELURUH DOKUMEN INI
+  - Generate Kurikulum
+  - SAKALA AI / AI Scheduling
+  Keduanya di luar cakupan sesuai arahan pemilik produk.
+
+
+================================================================================
+BAGIAN A — PRINSIP & FILOSOFI (LOCKED)
+================================================================================
+
+A.1 TAGLINE INTERNAL
+--------------------------------------------------------------------------------
+    FULL POWER, LOW FRICTION
+
+  Sub-prinsip     : DON'T REMOVE COMPLEXITY. ABSORB IT.
+  Operasional     : ONE INTENT -> ONE ACTION -> ONE RESULT
+  Data            : ONE INPUT -> MANY MODULES
+  Penjadwalan     : OPERATOR MENENTUKAN BATAS DAN ARAH.
+                    SISTEM MENENTUKAN SUSUNAN TERBAIK.
+  Keselamatan     : NO SILENT DAMAGE.
+  Optimasi        : PRESERVE FIRST, OPTIMIZE SECOND.
+  Arsitektur      : POWERFUL INSIDE, SIMPLE OUTSIDE.
+  Identitas       : THE HERITAGE IS DISCOVERED, NOT DISPLAYED.
+  Kemewahan       : LUXURY IS NOT ADDED. LUXURY IS ENGINEERED.
+
+A.2 MASALAH YANG SEBENARNYA DISELESAIKAN
+--------------------------------------------------------------------------------
+  Bukan  : "Bagaimana membuat jadwal otomatis?"
+  Tapi   : "Bagaimana membuat sistem yang mampu menangani kompleksitas
+            penyusunan jadwal tanpa memaksa operator memahami kompleksitas
+            tersebut?"
+
+A.3 PRINSIP UX UTAMA
+--------------------------------------------------------------------------------
+  FUNCTION -> STRUCTURE -> HIERARCHY -> BEAUTY
+  (bukan decoration -> interface -> functionality)
+
+  Urutan prioritas:
+   1. akurasi          7. typography
+   2. readability      8. color
+   3. hierarchy        9. image/illustration
+   4. geometric balance 10. icon
+   5. UX               11. decoration
+   6. whitespace       12. motion
+
+A.4 PRINSIP PENGIKAT DARI DOKUMEN KONSOLIDASI
+--------------------------------------------------------------------------------
+  1. SEDIKIT KLIK — setiap penambahan harus mengurangi atau menetapkan
+     jumlah klik, tidak pernah menambah.
+  2. TIDAK ADA SCROLL PANJANG — pakai grid/panel horizontal, manfaatkan
+     lebar layar.
+  3. KEJUJURAN STATUS DI ATAS TAMPILAN BAGUS — jangan pernah menampilkan
+     tanda selesai/hijau kalau datanya belum ada.
+  4. READABILITY DI ATAS IDENTITAS WARNA — warna kalah prioritas dari
+     keterbacaan teks.
+  5. KEMEWAHAN TIDAK BOLEH MEMPERLAMBAT — efek visual yang membuat
+     operator menunggu adalah kegagalan.
+  6. KONSISTEN DI SEMUA HALAMAN — warna, ikon, dan pola interaksi tidak
+     boleh berbeda antar halaman.
+
+A.5 DAFTAR KEPUTUSAN LOCKED (30 butir)
+--------------------------------------------------------------------------------
+  LOCK 01  Full Power, Low Friction
+  LOCK 02  Kompleksitas engine tidak boleh jadi beban operator
+  LOCK 03  Teaching Assignment tetap ada secara internal
+  LOCK 04  Operator memakai "Beban Mengajar" sebagai model input utama
+  LOCK 05  Target JP berbeda dari Scheduled JP
+  LOCK 06  JP Distribution adalah internal engine
+  LOCK 07  Session Generation adalah internal engine
+  LOCK 08  Kepadatan BUKAN kontrol operator
+  LOCK 09  Kepadatan tetap jadi optimasi internal
+  LOCK 10  Generator operator-facing pakai Pemetaan + Persebaran
+  LOCK 11  Struktur Waktu di Jadwal > Pengaturan Jadwal > Struktur Waktu
+  LOCK 12  Upacara/Religi/Apel = TYPE KEGIATAN + LABEL
+  LOCK 13  Struktur waktu adalah fondasi sebelum scheduling
+  LOCK 14  Area dibedakan jadi Active Area dan Protected Context
+  LOCK 15  Generator punya Otomatis / Susun Ulang / Isi Slot Kosong
+  LOCK 16  Profil: Otomatis / Seimbang / Utamakan Pagi / Lebih Merata / Custom
+  LOCK 17  Generator menghasilkan 3 alternatif dalam bahasa manusia
+  LOCK 18  Preview wajib sebelum Apply
+  LOCK 19  Minimal Disruption jadi prinsip regeneration
+  LOCK 20  LOCK harus dihormati generator
+  LOCK 21  Attendance independen dari scheduling
+  LOCK 22  Attendance tidak mengubah Target JP
+  LOCK 23  Attendance tidak mengubah schedule
+  LOCK 24  Tidak ada silent destructive change
+  LOCK 25  Impact Engine dipakai untuk perubahan berdampak besar
+  LOCK 26  Active/Inactive lebih aman daripada hard delete
+  LOCK 27  AI bukan solver utama
+  LOCK 28  Scheduling Engine tetap deterministic
+  LOCK 29  History adalah modul utama, bukan Settings
+  LOCK 30  Settings global hanya untuk konfigurasi global
+
+A.6 YANG SUDAH DICABUT — JANGAN DIHIDUPKAN KEMBALI
+--------------------------------------------------------------------------------
+  - Kepadatan sebagai kontrol operator          (REMOVED, tetap internal)
+  - Combined Class / Kelas Gabungan             (OUT OF SCOPE)
+  - Attendance sebagai scheduling dependency    (REMOVED)
+  - JP Distribution sebagai workflow operator   (REMOVED dari UX utama)
+  - Session Pattern sebagai pilihan wajib       (REMOVED, engine memilih)
+  - Technical constraint controls di UI         (REMOVED)
+  - Wizard panjang wajib                        (REMOVED)
+  - Konfirmasi generik "Apakah Anda yakin?"     (REMOVED, ganti Impact Preview)
+  - Full regeneration setiap perubahan          (REMOVED, ganti minimal disruption)
+
+
+================================================================================
+BAGIAN B — ARSITEKTUR & MODEL DATA
+================================================================================
+
+B.1 LAPISAN SISTEM
+--------------------------------------------------------------------------------
+                 +--------------+
+                 |  DATA ENGINE |
+                 +------+-------+
+                        v
+               +-----------------+
+               | TEACHING MODEL  |
+               +--------+--------+
+                        v
+              +-------------------+
+              | TIME STRUCTURE    |
+              +--------+----------+
+                       v
+              +-------------------+
+              | SCHEDULING ENGINE |
+              +--------+----------+
+                       v
+              +-------------------+
+              | VALIDATION        |
+              +--------+----------+
+                       v
+             +--------------------+
+             | VARIANTS / PREVIEW |
+             +---------+----------+
+                       v
+                    APPLY
+                       v
+                  JADWAL AKTIF
+
+  Cross-cutting: Impact Engine, History, AI Assistant (dikecualikan)
+
+B.2 DEPENDENCY MODEL INTERNAL
+--------------------------------------------------------------------------------
+  School -> Academic Year -> Master Data -> Teaching Requirement
+         -> Session -> Constraint Model -> Schedule
+
+  Tapi operator hanya melihat:
+  Guru, Mapel, Kelas, Beban Mengajar, Jadwal
+
+B.3 ENTITAS UTAMA (15)
+--------------------------------------------------------------------------------
+   1. School            9. Time Structure
+   2. Academic Year    10. Schedule Slot
+   3. Teacher          11. Schedule Entry
+   4. Subject          12. Rules
+   5. Class            13. Preferences
+   6. Room             14. Attendance
+   7. Curriculum       15. History
+   8. Teaching Assignment
+
+B.4 ACADEMIC YEAR — GOVERNANCE (Phase 10.4, LOCKED)
+--------------------------------------------------------------------------------
+  ACADEMIC YEAR IS NOT A FILTER. IT IS THE ACTIVE CONTEXT OF THE WORKSPACE.
+
+  Dua konsep WAJIB dipisahkan:
+    Lifecycle       : DRAFT -> ACTIVE -> ARCHIVED
+                      ("apa status kehidupan tahun ini?")
+    Workspace Ctx   : SELECTED / NOT SELECTED
+                      ("tahun mana yang sedang dipakai operator?")
+    ACTIVE != SELECTED
+
+  5 HUKUM UTAMA:
+    LAW 01  ONE ACTIVE CONTEXT
+    LAW 02  CONTEXT BEFORE ACTION
+    LAW 03  NO SILENT SWITCH
+    LAW 04  PRESERVE, THEN ADAPT
+    LAW 05  NO BLIND COPY
+
+  HUKUM TAMBAHAN:
+    06 History survives          11 Human identity remains stable
+    07 Year != Date              12 Attendance remains independent
+    08 Year switch != Copy       13 Operator tak perlu paham engine
+    09 Invalid context = block   14 Adapt, don't assume
+    10 Context is data           15 Context never lost silently
+
+  COPY POLICY (pindah tahun ajaran):
+    School              Shared
+    Teacher             Reusable
+    Subject             Reusable
+    Room                Reusable / reference
+    Class               New year context
+    Curriculum          Copy + Review
+    Teaching Assignment Copy + Review
+    Target JP           Copy + Review
+    Time Structure      Template
+    Rules               Template
+    Preferences         Template
+    Schedule            Rebuild / Review (NEVER blind-copy)
+    Attendance          NEVER COPY
+    History             NEVER COPY
+
+B.5 ABSENSI — INDEPENDEN (LOCKED)
+--------------------------------------------------------------------------------
+  Model minimum: teacher_id + date + status + note
+  TIDAK butuh  : schedule_id, assignment, target JP
+
+  Attendance TIDAK BOLEH:
+    - memengaruhi Scheduling Engine
+    - mengubah schedule
+    - mengubah target JP
+    - menghitung fulfillment target JP
+
+  Guru bisa HADIR walau tidak punya jadwal mengajar hari itu. Tetap valid.
+
+
+================================================================================
+BAGIAN C — SCHEDULE ENGINE (Otak Sistem)
+================================================================================
+
+C.1 MASTER EQUATION
+--------------------------------------------------------------------------------
+  USER INTENT + MINIMUM DATA + SCHOOL TIME STRUCTURE + HARD RULES
+  + SOFT PREFERENCES + EXISTING SCHEDULE + LOCK + PROTECTED CONTEXT
+        v
+  SCHEDULING ENGINE
+        v
+  VALID + PRESERVED + OPTIMIZED + EXPLAINABLE
+        v
+  PREVIEW -> SAFE APPLY -> VERSION + HISTORY
+
+C.2 HIERARKI PRIORITAS (tidak boleh dibalik)
+--------------------------------------------------------------------------------
+  LEVEL 0  VALIDITY     (jadwal harus valid)
+  LEVEL 1  PRESERVATION (pertahankan yang sudah ada)
+  LEVEL 2  QUALITY      (distribusi, gap, beban, konsistensi)
+  LEVEL 3  PREFERENCE   (waktu, prioritas, pemetaan, persebaran)
+
+  Ringkas: VALID FIRST. PRESERVE SECOND. OPTIMIZE THIRD. EXPLAIN ALWAYS.
+
+C.3 HARD CONSTRAINT (tidak boleh dilanggar)
+--------------------------------------------------------------------------------
+   1. Teacher clash — guru tidak bisa 2 kelas di slot sama
+   2. Class clash — kelas tidak bisa 2 pelajaran bersamaan
+   3. Room clash (jika room scheduling aktif)
+   4. Non-teaching slot (Istirahat/Kegiatan/Non-Aktif) bukan slot mengajar
+   5. Target JP harus dipenuhi sejauh feasible
+   6. Session structure valid
+   7. LOCK tidak boleh dipindahkan
+   8. Protected context tidak boleh diubah
+   9. Hard availability
+  10. MAKSIMAL 3 JP BELAJAR BERTURUT-TURUT per hari (guru DAN kelas)
+  11. Official max JP/day bila mandatory
+  12. Room capacity/type bila mandatory
+
+C.4 CONTINUITY RULE (LOCKED — koreksi penting)
+--------------------------------------------------------------------------------
+  Learning continuity TIDAK diputus oleh ISTIRAHAT / KEGIATAN / NON-AKTIF.
+
+  Contoh KONTINU (2 JP):        Contoh TIDAK kontinu (1 + 1):
+    P4 IPA                        P4 IPA
+    P5 ISTIRAHAT                  P5 IPS      <- learning session lain
+    P6 IPA                        P6 IPA
+
+  Yang dihitung untuk aturan max-3 adalah LEARNING JP, bukan nomor periode.
+  Internal: counts_as_learning = true/false. Operator hanya lihat
+  "jam pelajaran berurutan".
+
+C.5 SOFT CONSTRAINT (boleh dikompromikan)
+--------------------------------------------------------------------------------
+  Preferensi guru, waktu preferensi mapel, pola distribusi, jumlah
+  pertemuan, prioritas pemetaan, soft availability, preferensi pagi.
+
+  URUTAN RELAKSASI kalau tidak dapat hasil ideal:
+    1. Time preference  2. Distribution preference  3. Gap preference
+    4. Daily balance    5. Soft preference lainnya
+  TIDAK BOLEH direlaksasi otomatis: teacher/class/room clash, LOCK,
+  protected context, seluruh HARD constraint.
+
+C.6 GENERATOR UX (LOCKED)
+--------------------------------------------------------------------------------
+  AREA -> CARA KERJA -> PROFIL JADWAL -> BUAT JADWAL
+
+  AREA        : Semua Kelas / Satu Kelas / Beberapa Kelas / Bagian Tertentu
+  CARA KERJA  : Otomatis / Susun Ulang / Isi Slot Kosong
+  PROFIL      : Otomatis / Seimbang / Utamakan Pagi / Lebih Merata / Custom
+
+  Area yang dipilih = ACTIVE AREA (boleh diubah engine)
+  Di luar area     = PROTECTED CONTEXT (tidak diubah, TAPI tetap jadi constraint)
+
+C.7 ALUR PENUH GENERATOR
+--------------------------------------------------------------------------------
+  BERANDA -> JADWAL -> BUAT/PERBAIKI JADWAL -> AREA -> CARA KERJA -> PROFIL
+  -> BUAT JADWAL -> ENGINE -> VALIDASI -> 3 VARIASI -> PREVIEW -> PILIH
+  -> TERAPKAN -> JADWAL AKTIF
+
+C.8 FEASIBILITY (3 status)
+--------------------------------------------------------------------------------
+  FEASIBLE                  Jadwal dapat dibuat
+  FEASIBLE WITH TRADE-OFF   Bisa, tapi sebagian preferensi tak terpenuhi
+  INFEASIBLE                Tidak ada solusi valid dengan kondisi sekarang
+
+C.9 TIGA VARIAN (bahasa manusia, BUKAN skor)
+--------------------------------------------------------------------------------
+  01  PALING SEIMBANG      -> prioritas distribusi keseluruhan
+  02  LEBIH SESUAI WAKTU   -> prioritas preferensi waktu
+  03  LEBIH MERATA         -> prioritas penyebaran beban
+
+  DILARANG menampilkan: "Score 94.82", "solver confidence 0.984",
+  constraint ID, terminologi solver.
+
+C.10 HUMAN-READABLE ERROR (wajib)
+--------------------------------------------------------------------------------
+  JANGAN : "Constraint violation: UNSAT."
+  PAKAI  : "Jadwal belum dapat dibuat karena beban mengajar Pak Ahmad
+            membutuhkan 30 JP, sementara slot yang tersedia hanya 20 JP."
+  Lalu   : [Lihat Beban] [Coba Cara Lain] [Ubah Struktur Waktu]
+
+  Struktur wajib: MASALAH -> PENYEBAB -> DAMPAK -> SOLUSI -> AKSI
+
+C.11 STATE SLOT & GOVERNANCE
+--------------------------------------------------------------------------------
+  Status entry : EMPTY / SCHEDULED / AUTO / MANUAL / LOCKED / CONFLICT /
+                 WARNING / PREVIEW / PROTECTED
+
+  MANUAL != LOCK  (penting!)
+    AUTO    Engine membuatnya, boleh diubah
+    MANUAL  Operator pernah mengatur, TIDAK otomatis terkunci
+    LOCK    Dilindungi, engine WAJIB menghormati, tidak boleh auto-unlock
+
+C.12 20 HUKUM SCHEDULING WORKSPACE
+--------------------------------------------------------------------------------
+  01 The workspace shows the truth
+  02 The grid is a canvas, not a spreadsheet
+  03 One schedule, multiple perspectives
+  04 Academic context always precedes schedule action
+  05 Validity before quality
+  06 Quality before preference
+  07 Manual != Lock
+  08 Lock means protected
+  09 Drag does not bypass validation
+  10 No silent reschedule
+  11 No silent replacement
+  12 No unrelated disruption
+  13 Impact matches action risk
+  14 Preview before meaningful change
+  15 Active, preview and history must never be confused
+  16 Context never gets lost
+  17 Information > Illustration
+  18 Meaning > Decoration
+  19 Luxury through continuity, not ornament
+  20 The schedule should feel complex to the engine and simple to the operator
+
+
+================================================================================
+BAGIAN D — SISTEM UI/UX (PHASE 10.x)
+================================================================================
+
+D.1 INFORMASI ARSITEKTUR FINAL
+--------------------------------------------------------------------------------
+  BERANDA
+  DATA
+    +-- Guru
+    +-- Mapel
+    +-- Kelas
+    +-- Ruang
+    +-- Beban Mengajar
+    +-- Import / Sinkronisasi
+  JADWAL           (+ Pengaturan Jadwal: Struktur Waktu/Aturan/Preferensi/Prioritas)
+  ABSENSI          (+ Pengaturan Absensi)
+  LAPORAN          (+ Pengaturan Laporan)
+  RIWAYAT
+  SETTINGS         (Profil Admin, Profil Sekolah, Tampilan, Sistem)
+
+  Settings global HANYA untuk konfigurasi global — BUKAN tempat aturan
+  jadwal, aturan absensi, atau riwayat.
+
+D.2 ARAH VISUAL — QUIET OPULENCE / INTELLIGENT LUXURY
+--------------------------------------------------------------------------------
+  BUKAN "Luxury Dashboard", TAPI "LUXURY DIGITAL WORKSPACE"
+    Dashboard : panel -> card -> data -> button
+    Workspace : space -> hierarchy -> rhythm -> material -> information
+
+  Komposisi kemewahan SAKALA:
+    40% PROPORTION   25% TYPOGRAPHY   15% MATERIAL
+    10% SPACING       5% COLOR         5% MICRO DETAIL
+  BUKAN 80% gold gradient.
+
+  UJI PREMIUM SAAT DIAM: matikan semua animasi, lihat screenshot. Kalau
+  masih terasa "software mahal" -> berhasil. Kalau butuh animasi supaya
+  terlihat premium -> gagal.
+
+D.3 MATERIAL SYSTEM BERLAPIS
+--------------------------------------------------------------------------------
+  BACKGROUND -> ATMOSPHERIC HERITAGE -> CANVAS -> PRIMARY SURFACE
+  -> ELEVATED SURFACE -> FLOATING SURFACE -> FOCUS SURFACE
+
+  Dark:  Canvas #121418 | Sidebar #1A1D24 | Surface #22262F
+         Text #E2E4E9   | Accent #2DD4BF
+  Light: Canvas #F8F9FA | Sidebar #F1F3F5 | Surface #FFFFFF
+         Text #1E2433   | Accent #2563EB
+
+D.4 RADIUS HIERARKIS (jangan seragam!)
+--------------------------------------------------------------------------------
+  App shell        sangat halus
+  Surface besar    18–24
+  Drawer           24–28
+  Floating control pill / rounded
+  Button           medium
+  Table            hampir tidak terasa radius
+  Input            soft
+  Badge            compact pill
+
+  "Luxury muncul dari hierarki radius" — bukan dari semua elemen
+  ditempeli border-radius yang sama.
+
+D.5 SIDEBAR — THE QUIET NAVIGATION (Phase 10.2 LOCKED)
+--------------------------------------------------------------------------------
+  Sidebar bukan menu — sidebar adalah PETA POSISI pengguna.
+  Lebar: Expanded 240–264px, Collapsed 64–72px
+  Visual weight: CONTENT >> NAVIGATION
+
+  Active state = "Saya berada di sini", BUKAN "Lihat saya!"
+    -> accent bar 2–3px vertikal, bukan full-color background row
+
+  10 SIDEBAR LAW:
+    01 Orientation First        06 Persistent Preference
+    02 Content Dominates        07 Context Never Lost
+    03 One Active Destination   08 Heritage Is Atmosphere
+    04 Minimal Attention Signal 09 Motion Has Meaning
+    05 No Engine Exposure       10 Mobile Is a Transformation
+
+  DILARANG: badge angka di tiap menu (jadi "alarm panel"), submenu 4–5
+  level, gradient besar, neon accent, ikon warna-warni, auto-collapse
+  yang mengganggu.
+
+D.6 TOP BAR — THE LUXURY COMMAND BAR (Phase 10.3 LOCKED)
+--------------------------------------------------------------------------------
+  Struktur: SCHOOL IDENTITY | ACADEMIC YEAR | GLOBAL SEARCH | STATUS | ADMIN
+
+  Prioritas informasi:
+    01 GLOBAL CONTEXT (School + Academic Year)
+    02 COMMAND (Global Search) — boleh jadi focal jewel
+    03 SYSTEM STATE (Status)
+    04 HUMAN (Admin identity)
+
+  10 PRINSIP TERKUNCI:
+    01 Top bar is NOT navigation      06 Academic year is global context
+    02 Top bar is contextual command  07 Status is diagnostic, not decorative
+    03 Optimization != removing       08 Admin identity is human anchor
+    04 Richness must stay controlled  09 Megamendung is atmosphere
+    05 Search is signature experience 10 Luxury = material+detail+continuity
+
+D.7 HUMAN IDENTITY SYSTEM (Phase 10.3 LOCKED)
+--------------------------------------------------------------------------------
+  PHOTO WHEN AVAILABLE. PREMIUM AVATAR WHEN NEEDED.
+  HERO IS A ROLE, NOT A SIZE.
+
+  Skala: HERO 120–220px | FEATURE 64–120px | STANDARD 40–56px | MICRO 24–36px
+
+  Matriks per core:
+    Guru           HERO      Profil
+    Mapel          STANDARD  Pengampu
+    Kelas          STANDARD  Pengajar
+    Ruang          MICRO     Pengguna ruang
+    Beban Mengajar FEATURE   Beban / JP
+    Jadwal         MICRO/STD Slot
+    Absensi        STANDARD  Kehadiran
+    Laporan        STANDARD  Reporting
+    Riwayat        STANDARD  Actor
+    Settings       HERO      Admin Profile
+    Top Bar        STANDARD  Admin Identity
+    Drawer         FEATURE   Detail
+
+  11 ATURAN TERKUNCI: satu visual DNA, foto kalau ada, avatar premium
+  kalau tidak, hero kalau konteks memang butuh, standard kalau data yang
+  utama, micro kalau ruang terbatas, konteks selalu menang, tidak boleh
+  campur gaya avatar, TIDAK ADA initials-circle sebagai sistem utama,
+  tidak ada kartun/emoji, satu orang harus terasa sama di semua core.
+
+  PHOTO PRESERVATION RULE: foto asli guru TIDAK BOLEH diubah wajahnya.
+  Yang boleh: crop, background treatment, proportional scaling, framing.
+
+D.8 SISTEM ILUSTRASI & IKONOGRAFI
+--------------------------------------------------------------------------------
+  ONE VISUAL LANGUAGE, MULTIPLE RESOLUTIONS
+  RICHNESS BY SCALE (bukan RICHNESS EVERYWHERE)
+
+  HERITAGE -> ATMOSPHERE -> CONTEXT -> ILLUSTRATION
+  -> FEATURE ICON -> STANDARD ICON -> MICRO ICON
+
+  3 level ilustrasi:
+    01 ATMOSPHERIC   membangun dunia SAKALA (Megamendung, contour)
+    02 CONTEXTUAL    menggambarkan keadaan (empty/ready/conflict/success)
+    03 ILLUSTRATIVE ICONOGRAPHY  objek/fungsi khas
+
+  Formula: CONTEXT -> ILLUSTRATION -> MEANING -> ACTION
+  Prinsip: INFORMATION > ILLUSTRATION, MEANING > DECORATION,
+           LUXURY > GIMMICK, CONTEXT > REPETITION
+
+  DILARANG: kartun status, stock art, AI art generik, glossy 3D,
+  batik literal, ornamen islami berlebihan.
+
+D.9 SMARTSELECT (LOCKED)
+--------------------------------------------------------------------------------
+  Aturan tampil:
+    <= 3 pilihan  -> tampilkan langsung (tanpa search)
+    >  3 pilihan  -> search aktif
+    ~200 pilihan  -> search sebagai default
+
+  Ranking: EXACT -> PREFIX -> MULTI-TOKEN -> PARTIAL -> ALIAS/CODE
+
+  Normalisasi contoh: "abd rah" -> Muhammad Abdul Rahman,
+  "b indo" -> Bahasa Indonesia, "7a" -> VII A, "lab kom" -> Lab Komputer
+
+  Empty: "Tidak menemukan 'Ahmadn'. Mungkin maksud Anda 'Ahmad'?"
+
+D.10 POLA INTERAKSI GLOBAL
+--------------------------------------------------------------------------------
+  SmartSelect      pemilihan / pencarian
+  Context Drawer   perubahan ringan-sedang, TIDAK pindah halaman
+  Repair Panel     penanganan masalah
+  Impact Sheet     penjelasan dampak
+  Preview          candidate schedule
+  Schedule Grid    visual & manual adjustment
+
+  3 LEVEL CONTEXTUAL EDIT:
+    Level 1  Inline / Quick Fix      (perubahan sederhana)
+    Level 2  Context Drawer          (perubahan sedang)
+    Level 3  Full Workspace          (perubahan kompleks)
+
+D.11 DIAGNOSTIC & REPAIR
+--------------------------------------------------------------------------------
+  Status operator-facing:
+    HIJAU   SIAP
+    KUNING  PERLU DILENGKAPI
+    ORANYE  PERLU DIPERHATIKAN
+    MERAH   BELUM DAPAT DIBUAT
+
+  Urutan diagnostik internal:
+    DATA DASAR -> KEBUTUHAN MENGAJAR -> STRUKTUR WAKTU -> KETERSEDIAAN SLOT
+    -> GURU -> KELAS -> RUANG -> JADWAL EXISTING -> LOCK/FIXED
+    -> ATURAN WAJIB -> KUALITAS
+
+  Alur perbaikan global:
+    DETECT -> EXPLAIN -> RECOMMEND -> ACT -> RECHECK
+
+  THREE VISIBLE: maksimal 3 masalah utama ditampilkan, sisanya "+N lainnya"
+  Tampilkan AKAR MASALAH, bukan 15 gejala turunan.
+
+D.12 IMPACT ENGINE
+--------------------------------------------------------------------------------
+  Status dampak:
+    HIJAU  Tidak berdampak
+    BIRU   Berdampak administratif
+    KUNING Berdampak ke pekerjaan
+    MERAH  Berdampak ke jadwal
+
+  TIDAK ADA konfirmasi generik "Apakah Anda yakin?".
+  Harus menjelaskan: apa yang berubah, apa dampaknya, apa yang akan
+  dilakukan sistem, apa pilihan operator.
+
+  FRICTION SHOULD MATCH RISK:
+    Generate tanpa perubahan   none
+    Preview                    none
+    Apply perubahan kecil aman low
+    Pindah beberapa jadwal     medium
+    Ganti guru                 medium/high
+    Ubah struktur waktu        high
+    Unlock                     high
+    Regenerasi global          high
+    Restore versi              high
+
+D.13 MOTION SYSTEM
+--------------------------------------------------------------------------------
+  Hover              120–180 ms
+  Selection/normal   180–260 ms
+  Drawer/panel       280–400 ms
+  Transisi kompleks  400–600 ms
+
+  DILARANG: bouncing, elastic, glow, particle, confetti, fireworks,
+  blinking/flashing merah, animasi dekoratif tanpa makna.
+  MOTION HAS MEANING.
+
+D.14 MOBILE = TRANSFORMASI, BUKAN PENGECILAN
+--------------------------------------------------------------------------------
+  Mobile mengubah STRUCTURE, bukan sekadar SIZE.
+  Sidebar -> top nav + sheet navigation
+  Kanvas Jadwal -> day-first workspace (swipe antar hari), bukan Excel kecil
+  Drag/drop desktop TIDAK dipaksakan ke mobile -> pakai Context Sheet
+
+D.15 AKSESIBILITAS
+--------------------------------------------------------------------------------
+  - Tidak boleh bergantung pada warna saja / ikon saja / hover saja
+  - Selalu: ICON + LABEL + EXPLANATION
+  - Keyboard: Tab -> Arrow -> Enter -> Space, Esc menutup panel
+  - Slot jadwal harus bisa difokuskan
+  - Screen reader harus bisa membaca: "Senin, Jam ke-2, Matematika,
+    VII A, Ahmad Fauzan, Ruang 03, terkunci"
+
+
+================================================================================
+BAGIAN E — DIREKTIF PEMILIK PRODUK & HASIL AUDIT KONSOLIDASI
+================================================================================
+
+E.1 DIREKTIF PEMILIK PRODUK (8 CATATAN — PRIORITAS TERTINGGI)
+--------------------------------------------------------------------------------
+
+E.1.1 AKSI PER-BARIS BERBASIS IKON (Guru, Mapel, Kelas, Ruang)
+  Masalah: EntityRow cuma punya SATU aksi (link teks Nonaktifkan saat hover).
+  Untuk edit harus masuk detail; untuk lihat jadwal harus pindah halaman
+  dan filter manual. Melanggar prinsip "sedikit klik".
+
+  Yang dibangun — deret ikon per baris:
+    LIHAT JADWAL (view-only)  Guru: jadwal mengajarnya
+                              Mapel: jadwal semua kelas yang diajar mapel itu
+                              Kelas: jadwal kelas satu minggu penuh
+                              Ruang: jadwal pemakaian ruang
+    TAMBAH JADWAL             form terbuka dengan konteks AUTO-TERISI
+    EDIT                      edit data entitas
+    HAPUS/NONAKTIFKAN         + peringatan dependency
+
+  Aturan teknis wajib:
+    - Auto-fill konteks (klik + dari baris Guru A -> Guru A sudah terisi)
+    - Halaman "Lihat Jadwal" VIEW-ONLY MURNI, sumber data sama persis
+      dengan Kanvas Jadwal utama (jangan bikin query terpisah)
+    - Pakai sistem ikon custom V3 (satu visual DNA), bukan ikon generik
+    - Pola hover-reveal, tapi tetap terlihat saat focus-visible
+    - Setiap ikon wajib aria-label + tooltip teks
+
+  Prasyarat: ikon Lihat & Tambah baru berfungsi penuh setelah Kanvas
+  Jadwal punya kemampuan assignment. Sebelum itu bangun Edit & Hapus dulu.
+
+E.1.2 SISTEM IDENTITAS WARNA TUNGGAL
+  1. Sediakan MINIMAL 20 warna berbeda & mudah dibedakan
+  2. Warna dipilih SEKALI SAJA — melekat ke Mapel ATAU Guru, TIDAK keduanya.
+     Keputusan tingkat sistem, bukan per-halaman.
+  3. Jumlah warna menyesuaikan jumlah data (12 mapel -> 12 slot, bukan 20)
+  4. Kriteria: estetik + luxury + mudah dikenali. Jewel tone & muted luxury:
+     deep teal, burgundy, forest, ochre, aubergine, navy, terracotta, sage.
+     BUKAN warna primer mentah.
+  5. READABILITY DI ATAS SEGALANYA — warna sebagai tint/aksen/border/strip,
+     BUKAN fill solid kuat. Wajib punya pasangan warna teks lolos WCAG AA.
+  6. Warna STABIL — simpan di database sebagai atribut entitas, jangan
+     dihitung ulang di frontend.
+
+  KEPUTUSAN YANG BELUM DIAMBIL: melekat ke Guru atau Mapel?
+  Rekomendasi audit: MATA PELAJARAN (karena satu guru bisa mengajar
+  beberapa mapel; kalau warna ikut guru, satu baris jadwal jadi seragam
+  dan kehilangan informasi). >>> BUTUH KEPUTUSAN PEMILIK PRODUK <<<
+
+E.1.3 LARANGAN SCROLL PANJANG — TATA LETAK PADAT & HORIZONTAL
+  Masalah terukur: max-w-2xl di 8 halaman, max-w-md di 11 tempat.
+  Beban Mengajar kasus terburuk: 20 guru x 3 kelas = 60+ baris datar.
+
+  Yang dibangun:
+    - Kelompokkan Beban Mengajar PER GURU (satu panel = satu guru,
+      isinya semua mapel+kelas + total JP)
+    - Susun panel dalam GRID HORIZONTAL (grid-cols-2/3/auto-fit)
+    - Naikkan lebar container max-w-2xl -> max-w-7xl / full-width
+    - Panel wajib mengikuti bahasa luxury, bukan kotak polos
+    - Terapkan juga ke Guru/Mapel/Kelas/Ruang: grid kartu, bukan list vertikal
+
+E.1.4 GANTI ISTILAH "PERIODE" -> "JAM KE-"
+  Lokasi terukur:
+    GenerateTimeStructureForm.tsx:52  "Jumlah Periode" -> "Jumlah Jam Pelajaran"
+    GenerateTimeStructureForm.tsx:91  "Semua periode dibuat..." -> "Semua jam..."
+    time-structure.actions.ts:30      "Jumlah periode harus..." -> "Jumlah jam..."
+    time-structure.actions.ts:51      "...periode)" -> "...jam)"
+  Kanvas jadwal: label kolom "Jam ke-1", "Jam ke-2" — bukan "Periode 1"
+  Nama variabel/kolom DB boleh tetap Inggris (jangan ganti kolom DB
+  tanpa migration — resiko tidak sepadan).
+
+E.1.5 STRUKTUR WAKTU: MODEL DURASI PER JENIS KEGIATAN
+  Kondisi sekarang: SATU field "Durasi / JP (menit)" seragam untuk SEMUA slot.
+  Istirahat dapat durasi sama dengan jam belajar — tidak sesuai kenyataan.
+
+  Yang dibangun:
+    1. Durasi PER JENIS SLOT:
+         Mengajar    default 40 menit (bisa diedit)
+         Istirahat   default 15–30 menit (bisa diedit)
+         Kegiatan    default bebas (upacara, pembiasaan, sholat, ekskul)
+         Non-aktif   tidak dihitung
+    2. Default cerdas + edit manual per-slot tanpa mengulang seluruh struktur
+    3. JAM MULAI–SELESAI DIHITUNG OTOMATIS & BERANTAI. Sisipkan istirahat
+       20 menit setelah Jam ke-3 -> seluruh jam sesudahnya bergeser otomatis.
+       OPERATOR TIDAK BOLEH MENGHITUNG JAM MANUAL.
+    4. Total JP/minggu dihitung & ditampilkan otomatis, sebagai pembanding
+       terhadap target JP di Beban Mengajar
+    5. UI DINAMIS: ubah durasi -> preview linimasa langsung update realtime.
+       Tampilkan sebagai LINIMASA HORIZONTAL, lebar blok proporsional
+       terhadap durasi, tiap jenis slot beda perlakuan visual.
+
+  Catatan: tampilkan kapasitas (Struktur Waktu) dan target (Beban Mengajar)
+  BERDAMPINGAN supaya operator langsung lihat kalau target > kapasitas.
+
+E.1.6 DASHBOARD/BERANDA MEWAH DENGAN ILUSTRASI 3D
+    - Ilustrasi 3D SESUAI informasi yang ditampilkan, bukan dekorasi acak
+    - Ukuran mendukung angka, TIDAK menenggelamkannya
+    - Gaya matte/satin, pencahayaan lembut — bukan kartun mengkilap/clipart
+    - WAJIB mendukung dark & light mode
+    - BATAS TEKNIS: aset statis teroptimasi (SVG/WebP/AVIF), BUKAN render
+      3D real-time (three.js). Kecepatan operator di atas kemewahan visual.
+    - Ilustrasi TIDAK menggantikan data — data kosong tetap pesan jujur
+
+E.1.7 MOTIF BATIK MEGA MENDUNG
+  Area penerapan:
+    1. Pojok sidebar (area Setting sampai Riwayat, bagian bawah)
+    2. Main text area (latar area konten utama)
+
+  Aturan wajib:
+    - Garis awan berlapis khas Mega Mendung, eksekusi halus: opasitas
+      rendah, garis tipis, gradasi lembut
+    - OPASITAS SANGAT RENDAH di area teks (3–6%) — syarat mutlak
+    - Di pojok sidebar boleh lebih tegas
+    - Warna ikut palet luxury dark/light, jangan biru Cirebon mentah
+    - Implementasi SVG pattern inline / CSS background, BUKAN file gambar besar
+    - pointer-events: none, tidak ikut ter-scroll mengganggu
+
+  Nilai: SATU-SATUNYA elemen yang memberi IDENTITAS KULTURAL ORISINAL.
+
+E.1.8 PEROMBAKAN IDENTITAS VISUAL MENYELURUH
+  Keluhan pemilik produk: "tidak ada luxury-nya sama sekali, terlalu
+  template, tidak ada identity original SAKALA V3".
+
+  DIAGNOSIS TERUKUR — KELUHAN INI TERBUKTI DI ANGKA (diverifikasi ulang
+  18 Sep 2026 terhadap kode terkini):
+    - Animasi/transisi   : 13 dari 42 file (~31%)   [TERVERIFIKASI]
+    - backdrop-blur      : 0 pemakaian              [TERVERIFIKASI]
+    - rounded-lg seragam : 54 pemakaian             [TERVERIFIKASI]
+    - Container sempit   : max-w-2xl di 8 halaman   [TERVERIFIKASI]
+    - Ornamen kultural   : belum ada sama sekali    [TERVERIFIKASI]
+
+  Arah perombakan (BANGUN LAPISAN DI ATAS, jangan bongkar token):
+    1. PERTAHANKAN FONDASI — arsitektur token dark mode sudah bagus
+    2. BANGUN MOTION SYSTEM — durasi & easing konsisten, target mayoritas
+       interaksi punya transisi (bukan 31%)
+    3. BANGUN KEDALAMAN MATERIAL — blur/translusensi pada overlay & drawer,
+       bayangan lembut berarah, bukan border datar di mana-mana
+    4. TIPOGRAFI BERHIERARKI TEGAS — angka besar untuk metrik,
+       letter-spacing terkendali, kontras ukuran jelas. Saat ini semua
+       nyaris sama (12–13.5px)
+    5. AKSEN LOGAM/JEWEL TONE hemat sebagai aksen, bukan fill besar
+    6. ORNAMEN MEGA MENDUNG (E.1.7) sebagai penanda identitas orisinal
+    7. DETAIL MIKRO: hairline bergradasi, sudut lebih berkarakter dari
+       rounded-lg default, ketebalan garis ikon konsisten
+
+  RAMBU PENGAMAN: kemewahan TIDAK BOLEH menambah klik atau memperlambat.
+
+E.2 TEMUAN AUDIT KODE (GAP TERUKUR)
+--------------------------------------------------------------------------------
+
+E.2.1 KONFIRMASI AKSI MERUSAK + PERINGATAN DEPENDENCY (PALING KRITIS)
+  ToggleStatusButton.tsx: form polos, langsung submit, TANPA dialog
+  konfirmasi apa pun dan TANPA pending state.
+
+  Sintesis: diagnostics.ts SUDAH MENGHITUNG dependency yang relevan
+  ("Mapel X nonaktif tapi masih dipakai di beban mengajar Guru Y").
+  Datanya sudah ada, tinggal disambungkan ke titik aksi.
+
+  Rekomendasi: satu komponen ConfirmDialog, isinya ambil dari diagnostics
+  yang sudah dihitung. Bukan hard block, bukan diam.
+  Contoh: "Guru ini masih dipakai di 3 Beban Mengajar aktif —
+  tetap nonaktifkan?"
+
+E.2.2 GAP TERUKUR LAINNYA
+    Toast/notifikasi hasil aksi   : TIDAK ADA komponen sama sekali
+    Pending state di toggle/delete: TIDAK ADA (form create sudah bagus)
+    Trigger hover-reveal          : 2 pemakaian di seluruh app
+    Animasi/transisi              : 13/42 file (~31%)
+    Breakpoint responsif          : 1 kemunculan md: di seluruh app
+    Aksesibilitas (aria/focus)    : 4 dari 42 file
+
+E.2.3 MIGRATION SCHEMA TIDAK TER-VERSION-CONTROL
+  NOL file .sql ter-commit di repo SAKALA-V3 — seluruh perubahan skema
+  dijalankan langsung ke database tanpa jejak di kode. [TERVERIFIKASI]
+  V2 pernah kena masalah persis ini (migration 0008 tidak sinkron).
+  Resiko: kalau project Supabase reset/hilang, skema tidak bisa dibangun
+  ulang dari repo. Murah dicegah.
+
+E.3 OPTIMASI FUNDAMENTAL (BELUM ADA DI V2 MAUPUN V3)
+--------------------------------------------------------------------------------
+  Syarat tiap item: berdampak fundamental, TIDAK merumitkan, TIDAK
+  menambah klik — justru MENGURANGI klik atau mencegah kerja terbuang.
+
+  E.3.1 UNDO SETELAH AKSI (bukan konfirmasi berlapis)
+    Jalankan langsung tanpa konfirmasi, lalu toast "Guru X dinonaktifkan —
+    Urungkan" selama ~8 detik. NOL klik tambahan untuk aksi benar, satu
+    klik pemulihan untuk yang salah. Untuk aksi yang benar-benar tidak
+    bisa dipulihkan, konfirmasi (E.2.1) tetap dipakai — keduanya saling
+    melengkapi, bukan menggantikan.
+
+  E.3.2 SIMPAN OTOMATIS + STATUS TERSIMPAN YANG JUJUR
+    Draft lokal saat mengetik, status kecil jujur: "Tersimpan otomatis
+    14:03" / "Belum tersimpan". Saat kembali, tawarkan pulihkan draft.
+
+  E.3.3 PENCARIAN & LOMPAT GLOBAL (Ctrl/Cmd + K)
+    Satu pintasan mencakup seluruh entitas (guru, mapel, kelas, ruang,
+    menu). Empat langkah jadi satu. SmartSelect sudah setengah jadi
+    sebagai mesin pencariannya.
+
+  E.3.4 AKSI MASSAL (BULK)
+    Checkbox pilih-banyak + bilah aksi muncul saat ada yang terpilih
+    ("3 terpilih — Nonaktifkan / Ubah Target JP"). 15 aksi jadi 2 klik.
+
+  E.3.5 DUPLIKAT DATA SEBAGAI TITIK AWAL
+    Aksi "Duplikat" pada baris -> form terbuka dengan semua field terisi
+    dari baris asal. Dari mengisi 5 field jadi mengubah 1 field.
+
+  E.3.6 INGAT KONTEKS KERJA TERAKHIR
+    Simpan pilihan terakhir per halaman (kelas di kanvas, filter di
+    daftar) dan pulihkan otomatis. SYARAT: harus terlihat jelas filter
+    apa yang aktif — kejujuran status lebih penting daripada kepintaran.
+
+  E.3.7 CETAK & EKSPOR JADWAL YANG BENAR-BENAR TERPAKAI
+    Masalah fundamental: jadwal sekolah akhirnya DITEMPEL DI DINDING dan
+    DIBAGIKAN DALAM BENTUK KERTAS/PDF. Kalau tidak bisa dicetak rapi,
+    operator tetap menyalin manual ke Word/Excel.
+    Solusi: layout cetak khusus (@media print) per kelas, per guru, dan
+    rekap sekolah. Warna identitas harus tetap terbaca saat dicetak
+    hitam-putih (pakai pola/ketebalan sebagai pembeda cadangan).
+    >>> KEMUNGKINAN ITEM DENGAN DAMPAK TERBESAR DI SELURUH DOKUMEN <<<
+
+  E.3.8 KEADAAN KOSONG YANG MENGAJARKAN LANGKAH BERIKUTNYA
+    Setiap empty state menyebutkan langkah konkret + tautannya.
+    "Belum ada beban mengajar. Tambahkan minimal 1 Guru dan 1 Kelas
+    dulu -> [Ke Data Guru]"
+
+  E.3.9 KEYBOARD-FIRST PADA ENTRI DATA BERULANG
+    Tab logis, Enter untuk simpan-dan-lanjut (fokus kembali ke field
+    pertama), Esc untuk menutup panel. Entri massal tanpa sentuh mouse.
+    Sekaligus menutup gap aksesibilitas di E.2.2.
+
+
+================================================================================
+BAGIAN F — STATUS: SUDAH ADA vs BELUM ADA
+================================================================================
+
+Diverifikasi langsung terhadap kode repo per 18 September 2026.
+Production: https://sakala-v3.vercel.app
+Commit terakhir terverifikasi live: 20595e1
+
+F.1 SUDAH ADA DAN LIVE DI PRODUCTION
+--------------------------------------------------------------------------------
+
+FONDASI & DATA
+  [ADA] Next.js 16 + React 19 + Tailwind v4, layer domain/data-access/
+        application terpisah
+  [ADA] Supabase: 7 migration (school, academic_year, master data,
+        teaching_assignment, time_structure, attendance, history_entry,
+        teacher.photo_url)
+  [ADA] School + Academic Year dengan pemisahan lifecycle vs workspace
+        context (partial unique index: 1 tahun selected per sekolah)
+  [ADA] Master Data: Guru, Mapel, Kelas (year-scoped), Ruang — CRUD dasar
+  [ADA] Beban Mengajar: one-input model (Guru + Mapel + multi-Kelas +
+        JP/minggu -> beberapa baris sekaligus via upsert)
+  [ADA] Struktur Waktu: quick-generate grid + edit per-slot
+        (Mengajar/Kegiatan/Istirahat/Non-Aktif + label kegiatan)
+  [ADA] Absensi: independen dari jadwal, date navigator, 5 status
+  [ADA] Riwayat: audit trail bahasa manusia, terinstrumentasi di semua
+        mutation penting
+  [ADA] Laporan: Rekap JTM per Guru & per Kelas, Rekap Absensi per Guru
+  [ADA] Import CSV (khusus Guru, skip duplikat case-insensitive)
+  [ADA] Settings > Profil Sekolah
+
+SHELL & UI
+  [ADA] Design token dark-first + varian light ([data-theme])
+  [ADA] Sidebar: grup DATA, active state accent-bar (bukan full background),
+        collapse/expand persisten (useSyncExternalStore), submenu
+        kontekstual Jadwal, tooltip saat collapsed
+  [ADA] Top Bar: school identity, academic year context, status indicator,
+        admin placeholder
+  [ADA] Academic Context Sheet: daftar tahun ajaran + lifecycle badge +
+        switch context + siapkan tahun draft
+  [ADA] PageHeader, EmptyState, EntityRow, StatusBadge — komponen bersama
+  [ADA] SmartSelect: ranking exact>prefix>multi-token>partial, suggestion
+        typo (Levenshtein), <=3 opsi tampil langsung, keyboard nav
+  [ADA] Context Drawer: pola umum URL-driven (?detail=), CSS-only motion,
+        Escape + backdrop close
+  [ADA] Detail Guru via Drawer: Beban Mengajar + Absensi Terbaru + Riwayat
+  [ADA] Illustrative Iconography: 9 ikon SVG custom satu visual DNA
+  [ADA] Kanvas Jadwal: grid mingguan dari Struktur Waktu, perspective
+        switcher Sekolah/Kelas/Guru/Ruang, EntitySelect
+  [ADA] Diagnostic "Perlu Dicek" di Beranda: 3 jenis deteksi nyata,
+        Three Visible + "+N lainnya", link aksi konkret
+
+F.2 BELUM ADA — DIKELOMPOKKAN PER TINGKAT KEPENTINGAN
+--------------------------------------------------------------------------------
+
+*** KRITIS — MENCEGAH KERUSAKAN DATA ***
+  [BELUM] ConfirmDialog + peringatan dependency saat nonaktifkan
+          (E.2.1) — data diagnostics SUDAH ADA, tinggal disambung
+  [BELUM] Toast / notifikasi hasil aksi (E.2.2) — nol komponen
+  [BELUM] Undo setelah aksi (E.3.1)
+  [BELUM] Pending state di ToggleStatusButton (E.2.2)
+  [BELUM] Commit file migration .sql ke repo (E.2.3) — 0 file .sql
+
+*** IDENTITAS VISUAL — DIREKTIF PEMILIK PRODUK ***
+  [BELUM] Sistem Identitas Warna Tunggal 20+ jewel tone (E.1.2)
+          >>> BUTUH KEPUTUSAN: melekat ke Guru atau Mapel? <<<
+  [BELUM] Motion system menyeluruh (E.1.8 poin 2) — baru 31% file
+  [BELUM] Kedalaman material / backdrop-blur (E.1.8 poin 3) — 0 pemakaian
+  [BELUM] Tipografi berhierarki tegas (E.1.8 poin 4) — semua 12–13.5px
+  [BELUM] Motif Mega Mendung (E.1.7) — belum ada ornamen kultural
+  [BELUM] Radius berkarakter menggantikan rounded-lg default (D.4)
+  [BELUM] Dashboard dengan ilustrasi 3D (E.1.6)
+  [BELUM] Human Identity System / avatar premium (D.7) — kolom photo_url
+          sudah dibuat, UI-nya belum
+
+*** TATA LETAK ***
+  [BELUM] Naikkan lebar container max-w-2xl -> max-w-7xl (E.1.3)
+  [BELUM] Beban Mengajar dikelompokkan per Guru dalam grid (E.1.3)
+  [BELUM] Daftar Guru/Mapel/Kelas/Ruang jadi grid kartu (E.1.3)
+
+*** AKSI & PERCEPATAN KERJA ***
+  [BELUM] Deret ikon aksi per baris: Lihat/Tambah/Edit/Hapus (E.1.1)
+  [BELUM] Duplikat sebagai titik awal (E.3.5)
+  [BELUM] Aksi massal / bulk (E.3.4)
+  [BELUM] Simpan otomatis draft (E.3.2)
+  [BELUM] Ingat konteks kerja terakhir (E.3.6)
+  [BELUM] Keyboard-first entri berulang (E.3.9)
+  [BELUM] Empty state yang mengajarkan langkah berikutnya (E.3.8)
+          — sebagian sudah, belum konsisten
+  [BELUM] Pencarian global Ctrl+K (E.3.3) — placeholder visual saja
+
+*** STRUKTUR WAKTU ***
+  [BELUM] Ganti "Periode" -> "Jam ke-" (E.1.4) — 4 lokasi terukur
+  [BELUM] Durasi per jenis slot (E.1.5 poin 1–2)
+  [BELUM] Perhitungan jam berantai otomatis (E.1.5 poin 3)
+  [BELUM] Total JP tersedia vs target JP berdampingan (E.1.5 poin 4)
+  [BELUM] Linimasa horizontal dinamis (E.1.5 poin 5)
+
+*** SCHEDULE ENGINE — INTI SISTEM ***
+  [BELUM] Kemampuan mengisi assignment di Kanvas Jadwal
+          >>> PRASYARAT UNTUK HAMPIR SEMUA FITUR JADWAL LAIN <<<
+  [BELUM] Slot anatomy (kartu isi Mapel/Kelas/Guru/Ruang)
+  [BELUM] Klik slot -> Context Drawer detail
+  [BELUM] Drag & drop + validasi realtime (hijau/kuning/merah)
+  [BELUM] Status AUTO/MANUAL/LOCK + indikator lock
+  [BELUM] Deteksi bentrok deterministik (teacher/class/room clash)
+  [BELUM] Aturan max 3 JP berturut-turut
+  [BELUM] Continuity rule (istirahat tidak memutus kontinuitas)
+  [BELUM] Session generation dari Target JP
+  [BELUM] Feasibility check (FEASIBLE / TRADE-OFF / INFEASIBLE)
+  [BELUM] Solver deterministik
+  [BELUM] Generator UX: Area -> Cara Kerja -> Profil
+  [BELUM] 3 varian hasil dalam bahasa manusia
+  [BELUM] Preview sebelum Apply
+  [BELUM] Atomic apply + versioning
+  [BELUM] Minimal disruption / protected context
+  [BELUM] Target JP / JP Reconciliation + verification checklist
+
+*** IMPACT & DIAGNOSTIC LANJUTAN ***
+  [BELUM] Impact Sheet / Impact Engine (D.12)
+  [BELUM] Repair Panel penuh: WHAT -> WHY -> IMPACT -> RECOMMEND -> ACT
+  [BELUM] Smart Repair Queue
+
+*** ACADEMIC CONTEXT LANJUTAN ***
+  [BELUM] Readiness indicator per tahun ajaran (% siap)
+  [BELUM] Copy Governance (bawa data tahun lama ke draft baru)
+  [BELUM] Impact preview + unsaved-change protection sebelum switch
+
+*** OUTPUT ***
+  [BELUM] Cetak & ekspor jadwal (@media print) (E.3.7)
+          >>> DAMPAK TERBESAR, tapi butuh jadwal bisa terisi dulu <<<
+  [BELUM] Export PDF/Excel untuk Laporan
+  [BELUM] Import tingkat validasi V2 (template Excel 3-sheet, error
+          forensic per baris+kolom, reference resolution)
+
+*** RESPONSIF & AKSESIBILITAS ***
+  [BELUM] Mobile transformation (sidebar -> sheet, kanvas -> day-first)
+  [BELUM] Audit responsif menyeluruh — 1 breakpoint di seluruh app
+  [BELUM] Aksesibilitas menyeluruh — 4 dari 42 file
+
+*** BELUM DIAUDIT SAMA SEKALI ***
+  [BELUM] RLS / security Supabase V3 (policy, exposure anon key)
+          Catatan: semua tabel sekarang pakai policy TEMP_anon_* yang
+          mengizinkan akses penuh tanpa autentikasi
+  [BELUM] Performa query (kemungkinan N+1)
+
+
+================================================================================
+BAGIAN G — JADWAL PENGERJAAN
+================================================================================
+
+Dasar penyusunan: ketergantungan teknis, resiko kalau dibiarkan, dan
+besarnya dampak ke operator.
+
+--------------------------------------------------------------------------------
+TAHAP 1 — KESELAMATAN DATA (dikerjakan lebih dulu: mencegah kerusakan)
+--------------------------------------------------------------------------------
+  1.  Toast + Undo                              (E.3.1 + E.2.2)
+      Satu komponen, menutup dua kebutuhan sekaligus.
+  2.  ConfirmDialog + peringatan dependency     (E.2.1)
+      Hanya untuk aksi yang tidak bisa dipulihkan. Data sudah dihitung
+      diagnostics.ts — tinggal disambungkan.
+  3.  Pending state di ToggleStatusButton       (E.2.2)
+      Menyamakan pola yang sudah baik di form create.
+  4.  Commit migration .sql ke repo             (E.2.3)
+      Murah, mencegah insiden yang sudah pernah terjadi di V2.
+
+  Alasan didahulukan: ini satu-satunya kelompok yang resikonya KEHILANGAN
+  DATA. Sisanya "cuma" kurang bagus atau kurang cepat.
+
+--------------------------------------------------------------------------------
+TAHAP 2 — FONDASI VISUAL & BAHASA (mengunci identitas sebelum membangun di atasnya)
+--------------------------------------------------------------------------------
+  5.  KEPUTUSAN: warna melekat ke Guru atau Mapel?    (E.1.2)
+      >>> BUTUH JAWABAN PEMILIK PRODUK SEBELUM #6 BISA JALAN <<<
+  6.  Sistem Identitas Warna Tunggal (20+ jewel tone) (E.1.2)
+      Fondasi bagi hampir semua tampilan berikutnya.
+  7.  Motion system + kedalaman material + tipografi  (E.1.8 poin 2–4)
+      Lapisan ekspresi di atas token yang sudah ada.
+  8.  Motif Mega Mendung                              (E.1.7)
+      Identitas orisinal, jawaban paling langsung atas keluhan E.1.8.
+  9.  Ganti "Periode" -> "Jam ke-"                    (E.1.4)
+      Sangat murah, 4 lokasi, kerjakan bersamaan.
+
+--------------------------------------------------------------------------------
+TAHAP 3 — TATA LETAK & KEPADATAN (menghapus scroll panjang)
+--------------------------------------------------------------------------------
+  10. Beban Mengajar dikelompokkan per Guru, grid horizontal  (E.1.3)
+      Kasus terburuk — tangani lebih dulu.
+  11. Naikkan lebar container + daftar jadi grid kartu         (E.1.3)
+      Guru / Mapel / Kelas / Ruang.
+  12. Deret ikon aksi per baris — Edit & Hapus dulu            (E.1.1)
+      Lihat & Tambah menyusul setelah Tahap 5.
+  13. Duplikat sebagai titik awal                              (E.3.5)
+      Satu ikon tambahan di deret yang sama — kerjakan bersamaan.
+
+--------------------------------------------------------------------------------
+TAHAP 4 — STRUKTUR WAKTU CANGGIH
+--------------------------------------------------------------------------------
+  14. Durasi per jenis slot + jam berantai otomatis            (E.1.5 poin 1–3)
+  15. Linimasa horizontal dinamis                              (E.1.5 poin 5)
+  16. Total JP tersedia vs target JP berdampingan              (E.1.5 poin 4)
+
+--------------------------------------------------------------------------------
+TAHAP 5 — KEMAMPUAN ASSIGNMENT DI KANVAS JADWAL (membuka kunci fitur lain)
+--------------------------------------------------------------------------------
+  17. Kemampuan mengisi assignment di Kanvas Jadwal
+      >>> PRASYARAT UNTUK SEMUA DI BAWAH INI <<<
+  18. Slot anatomy + klik slot -> Context Drawer
+  19. Deteksi bentrok deterministik (teacher/class/room clash,
+      max 3 JP berturut, continuity rule)
+  20. Drag & drop + validasi realtime + sel berwarna identitas
+  21. Status AUTO / MANUAL / LOCK + indikator
+  22. Halaman Lihat Jadwal view-only per Guru/Mapel/Kelas/Ruang (E.1.1)
+      -> mengaktifkan ikon Lihat & Tambah dari Tahap 3
+  23. Target JP / JP Reconciliation + verification checklist
+
+--------------------------------------------------------------------------------
+TAHAP 6 — SCHEDULE ENGINE (otak sistem)
+--------------------------------------------------------------------------------
+  24. Session generation dari Target JP
+  25. Feasibility check (FEASIBLE / TRADE-OFF / INFEASIBLE)
+  26. Solver deterministik + hard/soft constraint + objective hierarchy
+  27. Generator UX: Area -> Cara Kerja -> Profil
+  28. 3 varian hasil dalam bahasa manusia
+  29. Preview + Impact Sheet sebelum Apply
+  30. Atomic apply + versioning + history
+  31. Minimal disruption + protected context
+
+  Catatan: ini kelompok paling kompleks di seluruh dokumen. Perlu
+  dipecah jadi beberapa sesi kerja terpisah.
+
+--------------------------------------------------------------------------------
+TAHAP 7 — PERCEPATAN KERJA OPERATOR
+--------------------------------------------------------------------------------
+  32. Cetak & ekspor jadwal (@media print)                     (E.3.7)
+      Dampak terbesar, tapi baru bermakna setelah jadwal bisa terisi.
+  33. Pencarian & lompat global Ctrl+K                         (E.3.3)
+  34. Aksi massal (bulk)                                       (E.3.4)
+  35. Simpan otomatis draft                                    (E.3.2)
+  36. Ingat konteks kerja terakhir                             (E.3.6)
+  37. Keyboard-first pada entri berulang                       (E.3.9)
+  38. Empty state yang mengajarkan langkah berikutnya          (E.3.8)
+
+--------------------------------------------------------------------------------
+TAHAP 8 — PENYEMPURNAAN & AUDIT
+--------------------------------------------------------------------------------
+  39. Import/Export tingkat validasi V2                        (E.3 / III.1)
+      Template Excel 3-sheet, error forensic per baris+kolom,
+      reference resolution otomatis.
+  40. Export PDF/Excel untuk Laporan
+  41. Human Identity System / avatar premium                   (D.7)
+  42. Dashboard dengan ilustrasi 3D                            (E.1.6)
+      Ditempatkan di sini karena memperindah, bukan memblokir.
+  43. Audit responsif menyeluruh + mobile transformation       (D.14, E.2.2)
+  44. Audit aksesibilitas menyeluruh                           (D.15, E.2.2)
+  45. Audit RLS / security Supabase V3
+      Belum pernah disentuh — semua tabel masih TEMP_anon_* policy.
+  46. Audit performa query (N+1)
+
+  Item 45 catatan penting: aplikasi saat ini TIDAK punya autentikasi dan
+  seluruh tabel terbuka untuk anon key. Aman selama dipakai internal /
+  belum berisi data sensitif, tapi WAJIB ditangani sebelum dipakai luas.
+
+
+================================================================================
+CATATAN PENUTUP
+================================================================================
+
+KEPUTUSAN YANG MASIH MENGGANTUNG (butuh jawaban pemilik produk):
+  1. Identitas warna melekat ke GURU atau MATA PELAJARAN?
+     Rekomendasi audit: Mata Pelajaran. Memblokir Tahap 2 item #6.
+
+KONSEP YANG SENGAJA MASIH TERBUKA (dari dokumen desain asli):
+  - Detail algoritma solver
+  - Mekanisme authentication
+  - Mekanisme teacher read-only access
+  - Detail substitution (guru pengganti)
+  - Detail room scheduling
+  - Detail curriculum rules
+  - Detail combined class / group
+  - Detail scoring internal & objective function
+  - Detail permission system
+
+  Hal-hal ini TIDAK BOLEH mengubah keputusan LOCKED di Bagian A.
+
+ATURAN PERUBAHAN KE DEPAN:
+  LOCKED     Tidak boleh diubah diam-diam
+  EXTENSION  Boleh ditambahkan kalau kompatibel
+  REVISION   Harus dibahas sebagai perubahan terhadap keputusan sebelumnya
+  REMOVED    Tidak boleh muncul kembali kecuali pemilik produk secara
+             eksplisit menghidupkannya
+  INTERNAL   Boleh kompleks di engine, tapi tidak otomatis jadi UI operator
+
+  Ide baru wajib diuji terhadap 7 pertanyaan:
+   1. Apakah meningkatkan kemampuan?
+   2. Apakah mengurangi beban operator?
+   3. Apakah menjaga determinisme?
+   4. Apakah menjaga data integrity?
+   5. Apakah menjaga backward compatibility?
+   6. Apakah tidak merusak keputusan LOCKED?
+   7. Apakah benar-benar menyelesaikan masalah?
+
+  Kalau tidak memenuhi, ide tersebut tidak boleh menggeser arsitektur utama.
+
+
+================================================================================
+KALIMAT PALING PENTING DARI SELURUH DESAIN
+================================================================================
+
+  JANGAN TAMPILKAN KERUMITAN SISTEM. TAMPILKAN TUJUAN DAN HASILNYA.
+
+  OPERATOR MENENTUKAN BATAS DAN ARAH.
+  SISTEM MENENTUKAN SUSUNAN TERBAIK.
+
+  VALID FIRST. PRESERVE SECOND. OPTIMIZE THIRD. EXPLAIN ALWAYS.
+
+  POWERFUL INSIDE, SIMPLE OUTSIDE.
+
+  SAKALA HARUS TERASA SEPERTI SOFTWARE YANG MAHAL,
+  BUKAN SOFTWARE YANG DIKASIH WARNA MAHAL.
+
+================================================================================
+AKHIR DOKUMEN
+================================================================================
