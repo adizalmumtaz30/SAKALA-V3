@@ -1,54 +1,50 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ScheduleEntry } from "@/lib/domain/schedule";
+import type { ScheduleEntry, ScheduleSource } from "@/lib/domain/schedule";
 
 interface ScheduleEntryRow {
   id: string;
   academic_year_id: string;
-  time_slot_id: string;
   teaching_assignment_id: string;
   room_id: string | null;
+  teacher_id: string;
+  subject_id: string;
+  class_id: string;
+  day: string;
+  period_number: number;
+  source: ScheduleSource;
+  locked: boolean;
+  teacher: { name: string } | null;
+  subject: { name: string; color_key: string | null } | null;
+  class: { name: string } | null;
   room: { name: string } | null;
-  time_structure: { day: string; period_number: number } | null;
-  teaching_assignment: {
-    teacher_id: string;
-    subject_id: string;
-    class_id: string;
-    teacher: { name: string } | null;
-    subject: { name: string; color_key: string | null } | null;
-    class: { name: string } | null;
-  } | null;
 }
 
 const SELECT = `
   *,
-  room:room_id(name),
-  time_structure:time_slot_id(day, period_number),
-  teaching_assignment:teaching_assignment_id(
-    teacher_id, subject_id, class_id,
-    teacher:teacher_id(name),
-    subject:subject_id(name, color_key),
-    class:class_id(name)
-  )
+  teacher:teacher_id(name),
+  subject:subject_id(name, color_key),
+  class:class_id(name),
+  room:room_id(name)
 `;
 
 function toDomain(row: ScheduleEntryRow): ScheduleEntry {
-  const ta = row.teaching_assignment;
   return {
     id: row.id,
     academicYearId: row.academic_year_id,
-    timeSlotId: row.time_slot_id,
     teachingAssignmentId: row.teaching_assignment_id,
     roomId: row.room_id,
-    teacherId: ta?.teacher_id ?? "",
-    teacherName: ta?.teacher?.name ?? "(guru tidak ditemukan)",
-    subjectId: ta?.subject_id ?? "",
-    subjectName: ta?.subject?.name ?? "(mapel tidak ditemukan)",
-    subjectColorKey: ta?.subject?.color_key ?? null,
-    classId: ta?.class_id ?? "",
-    className: ta?.class?.name ?? "(kelas tidak ditemukan)",
+    teacherId: row.teacher_id,
+    subjectId: row.subject_id,
+    classId: row.class_id,
+    day: row.day,
+    periodNumber: row.period_number,
+    source: row.source,
+    locked: row.locked,
+    teacherName: row.teacher?.name ?? "(guru tidak ditemukan)",
+    subjectName: row.subject?.name ?? "(mapel tidak ditemukan)",
+    subjectColorKey: row.subject?.color_key ?? null,
+    className: row.class?.name ?? "(kelas tidak ditemukan)",
     roomName: row.room?.name ?? null,
-    day: row.time_structure?.day ?? "",
-    periodNumber: row.time_structure?.period_number ?? 0,
   };
 }
 
@@ -65,22 +61,48 @@ export async function listScheduleEntriesForYear(
   return (data as unknown as ScheduleEntryRow[]).map(toDomain);
 }
 
+/** Kode error Postgres untuk pelanggaran UNIQUE constraint. */
+const UNIQUE_VIOLATION = "23505";
+
+export type ScheduleWriteResult =
+  | { ok: true }
+  | { ok: false; clash: "teacher" | "class" | "duplicate" | "unknown" };
+
 export async function createScheduleEntry(
   supabase: SupabaseClient,
   input: {
     academicYearId: string;
-    timeSlotId: string;
     teachingAssignmentId: string;
+    teacherId: string;
+    subjectId: string;
+    classId: string;
+    day: string;
+    periodNumber: number;
     roomId: string | null;
   },
-): Promise<void> {
+): Promise<ScheduleWriteResult> {
   const { error } = await supabase.from("schedule_entry").insert({
     academic_year_id: input.academicYearId,
-    time_slot_id: input.timeSlotId,
     teaching_assignment_id: input.teachingAssignmentId,
+    teacher_id: input.teacherId,
+    subject_id: input.subjectId,
+    class_id: input.classId,
+    day: input.day,
+    period_number: input.periodNumber,
     room_id: input.roomId,
+    source: "manual",
+    locked: true,
   });
-  if (error) throw error;
+
+  if (!error) return { ok: true };
+  if (error.code === UNIQUE_VIOLATION) {
+    // Jaring pengaman kedua — jalur normal sudah dicegat oleh pengecekan
+    // di lib/application/schedule-conflict.ts sebelum insert ini dipanggil.
+    if (error.message.includes("no_teacher_clash")) return { ok: false, clash: "teacher" };
+    if (error.message.includes("no_class_clash")) return { ok: false, clash: "class" };
+    return { ok: false, clash: "duplicate" };
+  }
+  throw error;
 }
 
 export async function deleteScheduleEntry(
@@ -91,15 +113,26 @@ export async function deleteScheduleEntry(
   if (error) throw error;
 }
 
-/** Pindah = ganti slot. Dipakai oleh aksi "Pindah jam". */
+/** Pindah = ganti hari/jam ke-. Dipakai oleh aksi "Pindah jam". */
 export async function moveScheduleEntry(
   supabase: SupabaseClient,
   id: string,
-  timeSlotId: string,
-): Promise<void> {
+  target: { day: string; periodNumber: number },
+): Promise<ScheduleWriteResult> {
   const { error } = await supabase
     .from("schedule_entry")
-    .update({ time_slot_id: timeSlotId, updated_at: new Date().toISOString() })
+    .update({
+      day: target.day,
+      period_number: target.periodNumber,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", id);
-  if (error) throw error;
+
+  if (!error) return { ok: true };
+  if (error.code === UNIQUE_VIOLATION) {
+    if (error.message.includes("no_teacher_clash")) return { ok: false, clash: "teacher" };
+    if (error.message.includes("no_class_clash")) return { ok: false, clash: "class" };
+    return { ok: false, clash: "duplicate" };
+  }
+  throw error;
 }

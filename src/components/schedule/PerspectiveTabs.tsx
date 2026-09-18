@@ -4,6 +4,7 @@ const PERSPECTIVES = [
   { key: "sekolah", label: "Sekolah" },
   { key: "kelas", label: "Kelas" },
   { key: "guru", label: "Guru" },
+  { key: "mapel", label: "Mapel" },
   { key: "ruang", label: "Ruang" },
 ] as const;
 
