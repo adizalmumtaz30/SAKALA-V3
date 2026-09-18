@@ -10,6 +10,7 @@ import {
 } from "@/lib/application/reports";
 import { ATTENDANCE_STATUS_LABEL } from "@/lib/domain/attendance";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { PrintButton } from "@/components/ui/PrintButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { IconLaporan } from "@/components/icons";
 
@@ -59,7 +60,16 @@ export default async function LaporanPage() {
         kicker="LAPORAN"
         title="Laporan"
         description={`Tahun ajaran ${academicYear.label} — rekap ditarik langsung dari data yang ada, bukan file terpisah.`}
+        action={<PrintButton label="Cetak Laporan" />}
       />
+
+      {/* Judul lembar — hanya tercetak (Bagian F.7). */}
+      <div data-print="title" className="mb-4">
+        <p className="text-[17px] font-semibold text-ink">Laporan</p>
+        <p className="text-[12px] text-ink-muted">
+          Tahun ajaran {academicYear.label}
+        </p>
+      </div>
 
       <div className="mt-6">
         <h2 className="text-[13px] font-medium text-ink">

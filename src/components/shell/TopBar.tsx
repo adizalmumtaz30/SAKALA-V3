@@ -1,7 +1,8 @@
-import { Search, User } from "lucide-react";
+import { User } from "lucide-react";
 import type { School } from "@/lib/domain/school";
 import type { AcademicYear } from "@/lib/domain/academic-year";
 import { AcademicContextTrigger } from "@/components/shell/AcademicContextTrigger";
+import { SearchTrigger } from "@/components/shell/SearchTrigger";
 
 interface TopBarProps {
   school: School | null;
@@ -64,12 +65,9 @@ export function TopBar({ school, academicYear, academicYears }: TopBarProps) {
         />
       )}
 
-      {/* Global Search — visual placeholder, wired in a later phase */}
+      {/* Bagian F.3 — pintu masuk Command Palette (Ctrl/Cmd+K). */}
       <div className="flex flex-1 justify-center">
-        <div className="flex w-full max-w-sm items-center gap-2 rounded-full border border-hairline bg-surface px-3.5 py-2 opacity-60">
-          <Search size={15} strokeWidth={1.75} className="text-ink-faint" />
-          <span className="text-[12.5px] text-ink-faint">Cari di SAKALA</span>
-        </div>
+        <SearchTrigger />
       </div>
 
       <SystemStatus school={school} academicYear={academicYear} />

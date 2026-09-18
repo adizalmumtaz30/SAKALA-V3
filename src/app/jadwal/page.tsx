@@ -6,10 +6,15 @@ import { listTimeStructureForYear } from "@/lib/data-access/time-structure";
 import { listTeachers } from "@/lib/data-access/teacher";
 import { listClassesForYear } from "@/lib/data-access/class";
 import { listRooms } from "@/lib/data-access/room";
+import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
+import { listScheduleEntriesForYear } from "@/lib/data-access/schedule";
+import { computeJpProgress } from "@/lib/application/schedule-conflict";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { ScheduleCanvas } from "@/components/schedule/ScheduleCanvas";
+import { InteractiveScheduleCanvas } from "@/components/schedule/InteractiveScheduleCanvas";
+import { JpProgressPanel } from "@/components/schedule/JpProgressPanel";
 import { PerspectiveTabs } from "@/components/schedule/PerspectiveTabs";
 import { EntitySelect } from "@/components/schedule/EntitySelect";
+import { PrintButton } from "@/components/ui/PrintButton";
 
 type View = "sekolah" | "kelas" | "guru" | "ruang";
 
@@ -85,6 +90,17 @@ export default async function JadwalPage({
       .map((r) => ({ id: r.id, name: r.name }));
   }
 
+  // Data Schedule Engine.
+  const [assignments, entries, allRooms] = await Promise.all([
+    listTeachingAssignmentsForYear(supabase, academicYear.id),
+    listScheduleEntriesForYear(supabase, academicYear.id).catch(() => []),
+    listRooms(supabase),
+  ]);
+  const progress = computeJpProgress(assignments, entries);
+  const roomOptions = allRooms
+    .filter((r) => r.status === "active")
+    .map((r) => ({ id: r.id, name: r.name }));
+
   const selectedId = entity ?? entityOptions[0]?.id;
   const selectedName = entityOptions.find((o) => o.id === selectedId)?.name;
   if (view !== "sekolah") {
@@ -98,27 +114,61 @@ export default async function JadwalPage({
       <PageHeader
         kicker="JADWAL"
         title={contextLabel}
-        description={`Tahun ajaran ${academicYear.label} — struktur kanvas mingguan. Isi jadwal menyusul begitu Scheduling Engine dibangun.`}
+        description={`Tahun ajaran ${academicYear.label} — klik tanda + pada jam mana pun untuk memasukkan pelajaran.`}
         action={
-          <Link
-            href="/jadwal/struktur-waktu"
-            className="flex items-center gap-1.5 rounded-lg border border-hairline-strong px-3 py-1.5 text-[12.5px] text-ink-muted hover:text-ink"
-          >
-            <Settings2 size={14} strokeWidth={1.75} />
-            Pengaturan Jadwal
-          </Link>
+          <div className="flex items-center gap-2">
+            <PrintButton label="Cetak Jadwal" />
+            <Link
+              href="/jadwal/struktur-waktu"
+              data-print="hide"
+              className="flex items-center gap-1.5 rounded-lg border border-hairline-strong px-3 py-1.5 text-[12.5px] text-ink-muted hover:text-ink"
+            >
+              <Settings2 size={14} strokeWidth={1.75} />
+              Pengaturan Jadwal
+            </Link>
+          </div>
         }
       />
 
-      <div className="mt-5 flex flex-wrap items-center gap-3">
+      {/* Judul lembar — hanya tercetak, memberi konteks pada kertas yang
+          lepas dari aplikasi (Bagian F.7). */}
+      <div data-print="title" className="mb-4">
+        <p className="text-[17px] font-semibold text-ink">
+          Jadwal {contextLabel}
+        </p>
+        <p className="text-[12px] text-ink-muted">
+          Tahun ajaran {academicYear.label}
+        </p>
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center gap-3" data-print="hide">
         <PerspectiveTabs active={view} />
         {view !== "sekolah" && entityOptions.length > 0 && (
           <EntitySelect view={view} options={entityOptions} selectedId={selectedId} />
         )}
       </div>
 
-      <div className="mt-5">
-        <ScheduleCanvas timeSlots={timeSlots} />
+      <div className="mt-5" data-print="hide">
+        <JpProgressPanel progress={progress} />
+      </div>
+
+      <div className="mt-4">
+        <InteractiveScheduleCanvas
+          academicYearId={academicYear.id}
+          timeSlots={timeSlots}
+          entries={entries}
+          progress={progress}
+          rooms={roomOptions}
+          focusFilter={
+            view === "sekolah" || !selectedId
+              ? undefined
+              : view === "kelas"
+                ? (e) => e.classId === selectedId
+                : view === "guru"
+                  ? (e) => e.teacherId === selectedId
+                  : (e) => e.roomId === selectedId
+          }
+        />
       </div>
     </div>
   );
