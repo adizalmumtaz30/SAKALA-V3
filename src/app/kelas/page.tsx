@@ -5,9 +5,10 @@ import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
 import { listClassesForYear } from "@/lib/data-access/class";
 import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
 import { computeDeactivationWarnings } from "@/lib/application/diagnostics";
-import { toggleClassStatusAction, updateClassAction } from "@/lib/application/master-data.actions";
+import { toggleClassStatusAction, updateClassAction, bulkSetClassStatusAction } from "@/lib/application/master-data.actions";
 import { CreateClassForm } from "@/components/master-data/CreateClassForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
+import { SelectableEntityGrid } from "@/components/master-data/SelectableEntityGrid";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 
@@ -53,28 +54,35 @@ export default async function KelasPage() {
         <CreateClassForm academicYearId={academicYear.id} />
       </div>
 
-      <div className="mt-8 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-        {classes.length === 0 && (
-          <div className="col-span-full rounded-xl border border-hairline bg-surface"><EmptyState
+      <div className="mt-8">
+        {classes.length === 0 ? (
+          <div className="rounded-xl border border-hairline bg-surface"><EmptyState
             icon={<IconKelas size={16} strokeWidth={1.75} />}
             message="Belum ada data kelas untuk tahun ajaran ini."
           /></div>
-        )}
-        {classes.map((schoolClass) => (
-          <EntityRow
-            key={schoolClass.id}
-            icon={<IconKelas size={15} strokeWidth={1.75} />}
-            name={schoolClass.name}
-            meta={schoolClass.capacity ? `${schoolClass.capacity} siswa` : undefined}
-            status={schoolClass.status}
-            id={schoolClass.id}
-            toggleAction={toggleClassStatusAction}
-            dependencyWarnings={byClass.get(schoolClass.id)}
-            viewScheduleHref={`/jadwal?view=kelas&entity=${schoolClass.id}`}
-            addScheduleHref={`/jadwal?view=kelas&entity=${schoolClass.id}`}
-            renameAction={updateClassAction}
+        ) : (
+          <SelectableEntityGrid
+            items={classes}
+            bulkActivate={(ids) => bulkSetClassStatusAction(ids, "active")}
+            bulkDeactivate={(ids) => bulkSetClassStatusAction(ids, "inactive")}
+            renderRow={(schoolClass, selectable) => (
+              <EntityRow
+                key={schoolClass.id}
+                icon={<IconKelas size={15} strokeWidth={1.75} />}
+                name={schoolClass.name}
+                meta={schoolClass.capacity ? `${schoolClass.capacity} siswa` : undefined}
+                status={schoolClass.status}
+                id={schoolClass.id}
+                toggleAction={toggleClassStatusAction}
+                dependencyWarnings={byClass.get(schoolClass.id)}
+                viewScheduleHref={`/jadwal?view=kelas&entity=${schoolClass.id}`}
+                addScheduleHref={`/jadwal?view=kelas&entity=${schoolClass.id}`}
+                renameAction={updateClassAction}
+                selectable={selectable}
+              />
+            )}
           />
-        ))}
+        )}
       </div>
     </div>
   );

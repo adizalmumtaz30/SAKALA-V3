@@ -9,6 +9,8 @@ import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assig
 import { toggleBebanMengajarStatusAction } from "@/lib/application/teaching-assignment.actions";
 import { CreateBebanMengajarForm } from "@/components/master-data/CreateBebanMengajarForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
+import { DuplicateBebanMengajarForm } from "@/components/master-data/DuplicateBebanMengajarForm";
+import { Copy } from "lucide-react";
 import { getIdentityColor } from "@/lib/domain/identity-color";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -84,18 +86,46 @@ export default async function BebanMengajarPage() {
             message="Belum ada beban mengajar untuk tahun ajaran ini."
           /></div>
         )}
-        {assignments.map((a) => (
-          <EntityRow
-            key={a.id}
-            icon={<IconBebanMengajar size={15} strokeWidth={1.75} />}
-            name={`${a.teacherName} — ${a.subjectName} — ${a.className}`}
-            meta={`${a.targetJp} JP/minggu`}
-            status={a.status}
-            id={a.id}
-            toggleAction={toggleBebanMengajarStatusAction}
-            accentColor={getIdentityColor(a.subjectColorKey)?.accent}
-          />
-        ))}
+        {assignments.map((a) => {
+          // Kelas yang belum punya kombinasi Guru+Mapel ini — dihitung per
+          // baris supaya "Duplikat" tidak menawarkan kelas yang pasti
+          // ditolak (unique constraint Guru+Mapel+Kelas).
+          const usedClassIds = new Set(
+            assignments
+              .filter((x) => x.teacherId === a.teacherId && x.subjectId === a.subjectId)
+              .map((x) => x.classId),
+          );
+          const availableClasses = activeClasses.filter((c) => !usedClassIds.has(c.id));
+
+          return (
+            <EntityRow
+              key={a.id}
+              icon={<IconBebanMengajar size={15} strokeWidth={1.75} />}
+              name={`${a.teacherName} — ${a.subjectName} — ${a.className}`}
+              meta={`${a.targetJp} JP/minggu`}
+              status={a.status}
+              id={a.id}
+              toggleAction={toggleBebanMengajarStatusAction}
+              accentColor={getIdentityColor(a.subjectColorKey)?.accent}
+              expandable={{
+                icon: <Copy size={14} strokeWidth={1.75} />,
+                label: "Duplikat ke kelas lain",
+                render: (close) => (
+                  <DuplicateBebanMengajarForm
+                    academicYearId={academicYear.id}
+                    teacherId={a.teacherId}
+                    teacherName={a.teacherName}
+                    subjectId={a.subjectId}
+                    subjectName={a.subjectName}
+                    defaultTargetJp={a.targetJp}
+                    availableClasses={availableClasses}
+                    onDone={close}
+                  />
+                ),
+              }}
+            />
+          );
+        })}
       </div>
     </div>
   );

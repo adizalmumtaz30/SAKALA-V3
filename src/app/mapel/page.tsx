@@ -6,9 +6,10 @@ import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assig
 import { computeDeactivationWarnings } from "@/lib/application/diagnostics";
 import { ColorPicker } from "@/components/master-data/ColorPicker";
 import { getIdentityColor } from "@/lib/domain/identity-color";
-import { createSubjectAction, toggleSubjectStatusAction, updateSubjectAction } from "@/lib/application/master-data.actions";
+import { createSubjectAction, toggleSubjectStatusAction, updateSubjectAction, bulkSetSubjectStatusAction } from "@/lib/application/master-data.actions";
 import { NameOnlyCreateForm } from "@/components/master-data/NameOnlyCreateForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
+import { SelectableEntityGrid } from "@/components/master-data/SelectableEntityGrid";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 
@@ -39,35 +40,42 @@ export default async function MapelPage() {
         />
       </div>
 
-      <div className="mt-8 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-        {subjects.length === 0 && (
-          <div className="col-span-full rounded-xl border border-hairline bg-surface"><EmptyState
+      <div className="mt-8">
+        {subjects.length === 0 ? (
+          <div className="rounded-xl border border-hairline bg-surface"><EmptyState
             icon={<IconMapel size={16} strokeWidth={1.75} />}
             message="Belum ada data mata pelajaran."
           /></div>
-        )}
-        {subjects.map((subject) => (
-          <EntityRow
-            key={subject.id}
-            icon={<IconMapel size={15} strokeWidth={1.75} />}
-            name={subject.name}
-            status={subject.status}
-            id={subject.id}
-            toggleAction={toggleSubjectStatusAction}
-            dependencyWarnings={bySubject.get(subject.id)}
-            accentColor={getIdentityColor(subject.colorKey)?.accent}
-            viewScheduleHref={`/jadwal?view=mapel&entity=${subject.id}`}
-            renameAction={updateSubjectAction}
-            trailing={
-              <ColorPicker
-                subjectId={subject.id}
-                subjectName={subject.name}
-                currentKey={subject.colorKey}
-                totalSubjects={subjects.length}
+        ) : (
+          <SelectableEntityGrid
+            items={subjects}
+            bulkActivate={(ids) => bulkSetSubjectStatusAction(ids, "active")}
+            bulkDeactivate={(ids) => bulkSetSubjectStatusAction(ids, "inactive")}
+            renderRow={(subject, selectable) => (
+              <EntityRow
+                key={subject.id}
+                icon={<IconMapel size={15} strokeWidth={1.75} />}
+                name={subject.name}
+                status={subject.status}
+                id={subject.id}
+                toggleAction={toggleSubjectStatusAction}
+                dependencyWarnings={bySubject.get(subject.id)}
+                accentColor={getIdentityColor(subject.colorKey)?.accent}
+                viewScheduleHref={`/jadwal?view=mapel&entity=${subject.id}`}
+                renameAction={updateSubjectAction}
+                selectable={selectable}
+                trailing={
+                  <ColorPicker
+                    subjectId={subject.id}
+                    subjectName={subject.name}
+                    currentKey={subject.colorKey}
+                    totalSubjects={subjects.length}
+                  />
+                }
               />
-            }
+            )}
           />
-        ))}
+        )}
       </div>
     </div>
   );
