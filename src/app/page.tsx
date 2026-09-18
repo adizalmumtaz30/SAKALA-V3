@@ -21,6 +21,7 @@ import {
   CreateSchoolForm,
   CreateAcademicYearForm,
 } from "@/components/onboarding/SetupForm";
+import { DashboardHeroIllustration } from "@/components/dashboard/DashboardHeroIllustration";
 
 export default async function BerandaPage() {
   const supabase = await createClient();
@@ -132,7 +133,11 @@ export default async function BerandaPage() {
       />
 
       <div className="relative">
-        <PageHeader kicker={`TAHUN AJARAN ${academicYear.label}`} title="Beranda" />
+        <PageHeader
+          kicker={`TAHUN AJARAN ${academicYear.label}`}
+          title="Beranda"
+          action={<DashboardHeroIllustration />}
+        />
 
         <div className="mt-8 rounded-2xl border border-hairline bg-surface p-5">
           <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
