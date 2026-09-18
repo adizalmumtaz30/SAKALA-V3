@@ -9,6 +9,7 @@ interface SubjectRow {
   category: string | null;
   status: "active" | "inactive";
   notes: string | null;
+  color_key: string | null;
 }
 
 function toDomain(row: SubjectRow): Subject {
@@ -20,6 +21,7 @@ function toDomain(row: SubjectRow): Subject {
     category: row.category,
     status: row.status,
     notes: row.notes,
+    colorKey: row.color_key,
   };
 }
 
@@ -33,4 +35,15 @@ export async function listSubjects(
 
   if (error) throw error;
   return (data as SubjectRow[]).map(toDomain);
+}
+
+export async function updateSubjectColor(
+  supabase: SupabaseClient,
+  input: { id: string; colorKey: string },
+): Promise<void> {
+  const { error } = await supabase
+    .from("subject")
+    .update({ color_key: input.colorKey })
+    .eq("id", input.id);
+  if (error) throw error;
 }

@@ -23,6 +23,7 @@ import {
   IconRiwayat,
 } from "@/components/icons";
 import { cn } from "@/lib/cn";
+import { MegaMendung } from "@/components/shell/MegaMendung";
 
 interface NavItem {
   href: string;
@@ -143,15 +144,12 @@ export function Sidebar({ hasAttention }: { hasAttention?: boolean }) {
         collapsed ? "w-[68px]" : "w-[248px]",
       )}
     >
-      {/* Atmospheric heritage layer — extremely subtle, discovered not displayed */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-64 opacity-[0.04]"
-        style={{
-          background:
-            "radial-gradient(120% 80% at 30% 100%, var(--color-accent-teal), transparent 60%)",
-        }}
-      />
+      {/* Digital Heritage Layer — Mega Mendung di pojok bawah sidebar
+          (Bagian E.1.7 area 1). Boleh sedikit lebih tegas di sini karena
+          tidak ada teks panjang. */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-72 overflow-hidden">
+        <MegaMendung variant="sidebar" />
+      </div>
 
       <div
         className={cn(

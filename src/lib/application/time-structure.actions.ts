@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import {
   generateTimeStructure,
   updateTimeSlot,
+  updateTimeSlotDuration,
+  recomputeDayChain,
+  getSlotContext,
 } from "@/lib/data-access/time-structure";
 import { recordHistory } from "@/lib/data-access/history";
 import type { Day, TimeSlotType } from "@/lib/domain/time-structure";
@@ -65,6 +68,13 @@ export async function updateTimeSlotAction(formData: FormData) {
   const supabase = await createClient();
   await updateTimeSlot(supabase, { id, type, activityLabel });
 
+  // Jenis slot berubah bisa mengubah durasi efektif (mis. jadi non-aktif),
+  // jadi rantai jam hari itu dihitung ulang (Bagian E.1.5 poin 3).
+  const slotContext = await getSlotContext(supabase, id);
+  if (slotContext) {
+    await recomputeDayChain(supabase, slotContext);
+  }
+
   const { data } = await supabase
     .from("time_structure")
     .select("academic_year_id, day, period_number")
@@ -80,4 +90,29 @@ export async function updateTimeSlotAction(formData: FormData) {
   });
 
   revalidatePath("/jadwal/struktur-waktu");
+}
+
+/**
+ * Ubah durasi satu slot, lalu geser otomatis seluruh jam sesudahnya di hari
+ * yang sama (Bagian E.1.5 poin 3). Hari lain tidak tersentuh.
+ */
+export async function updateSlotDurationAction(formData: FormData) {
+  const id = String(formData.get("id"));
+  const durationMinutes = Number(formData.get("durationMinutes"));
+  if (!id || !Number.isInteger(durationMinutes) || durationMinutes <= 0) return;
+
+  const supabase = await createClient();
+  const context = await updateTimeSlotDuration(supabase, { id, durationMinutes });
+  await recomputeDayChain(supabase, context);
+
+  await recordHistory(supabase, {
+    academicYearId: context.academicYearId,
+    entityType: "struktur_waktu",
+    entityId: id,
+    action: "update_duration",
+    summary: `Durasi slot diubah jadi ${durationMinutes} menit — jam sesudahnya digeser otomatis`,
+  });
+
+  revalidatePath("/jadwal/struktur-waktu");
+  revalidatePath("/jadwal");
 }

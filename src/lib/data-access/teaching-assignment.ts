@@ -11,7 +11,7 @@ interface TeachingAssignmentRow {
   status: "active" | "inactive";
   notes: string | null;
   teacher: { name: string } | null;
-  subject: { name: string } | null;
+  subject: { name: string; color_key: string | null } | null;
   class: { name: string } | null;
 }
 
@@ -27,6 +27,7 @@ function toDomain(row: TeachingAssignmentRow): TeachingAssignment {
     notes: row.notes,
     teacherName: row.teacher?.name ?? "(guru tidak ditemukan)",
     subjectName: row.subject?.name ?? "(mapel tidak ditemukan)",
+    subjectColorKey: row.subject?.color_key ?? null,
     className: row.class?.name ?? "(kelas tidak ditemukan)",
   };
 }
@@ -38,7 +39,7 @@ export async function listTeachingAssignmentsForYear(
   const { data, error } = await supabase
     .from("teaching_assignment")
     .select(
-      "*, teacher:teacher_id(name), subject:subject_id(name), class:class_id(name)",
+      "*, teacher:teacher_id(name), subject:subject_id(name, color_key), class:class_id(name)",
     )
     .eq("academic_year_id", academicYearId)
     .order("created_at", { ascending: false });

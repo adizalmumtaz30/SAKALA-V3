@@ -13,6 +13,10 @@ interface EntityRowProps {
   detailHref?: string;
   /** Dependency nyata dari diagnostics — memicu ConfirmDialog (Bagian E.2.1). */
   dependencyWarnings?: string[];
+  /** Strip aksen identitas warna (Bagian E.1.2) — aksen, bukan fill solid. */
+  accentColor?: string;
+  /** Slot aksi tambahan di kanan, mis. pemilih warna. */
+  trailing?: ReactNode;
 }
 
 /**
@@ -29,9 +33,18 @@ export function EntityRow({
   toggleAction,
   detailHref,
   dependencyWarnings,
+  accentColor,
+  trailing,
 }: EntityRowProps) {
   return (
-    <div className="group flex items-center gap-3 rounded-xl border border-hairline bg-surface px-4 py-3 transition-all duration-200 hover:border-hairline-strong hover:bg-surface-elevated focus-within:border-hairline-strong">
+    <div className="group relative flex items-center gap-3 overflow-hidden rounded-xl border border-hairline bg-surface px-4 py-3 transition-all duration-200 hover:border-hairline-strong hover:bg-surface-elevated focus-within:border-hairline-strong">
+      {accentColor && (
+        <span
+          aria-hidden
+          className="absolute inset-y-0 left-0 w-[3px]"
+          style={{ backgroundColor: accentColor }}
+        />
+      )}
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] border border-hairline-strong text-ink-muted transition-colors group-hover:text-ink">
         {icon}
       </div>
@@ -51,6 +64,7 @@ export function EntityRow({
           <StatusBadge status={status} />
         </div>
       </div>
+      {trailing && <div className="shrink-0">{trailing}</div>}
       <div className="shrink-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
         <ToggleStatusButton
           id={id}

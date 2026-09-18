@@ -12,15 +12,15 @@ export function PageHeader({ kicker, title, description, action }: PageHeaderPro
     <div className="flex items-start justify-between gap-4">
       <div>
         {kicker && (
-          <p className="text-[10.5px] font-medium tracking-wide text-ink-faint">
+          <p className="text-[10.5px] font-medium uppercase tracking-[0.14em] text-ink-faint">
             {kicker}
           </p>
         )}
-        <h1 className={`text-[20px] font-semibold text-ink ${kicker ? "mt-1" : ""}`}>
+        <h1 className={`text-[26px] font-semibold leading-tight tracking-[-0.015em] text-ink ${kicker ? "mt-1.5" : ""}`}>
           {title}
         </h1>
         {description && (
-          <p className="mt-1 text-[13px] text-ink-muted">{description}</p>
+          <p className="mt-1.5 max-w-prose text-[13px] leading-relaxed text-ink-muted">{description}</p>
         )}
       </div>
       {action && <div className="shrink-0 pt-0.5">{action}</div>}

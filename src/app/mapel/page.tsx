@@ -4,6 +4,8 @@ import { listSubjects } from "@/lib/data-access/subject";
 import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
 import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
 import { computeDeactivationWarnings } from "@/lib/application/diagnostics";
+import { ColorPicker } from "@/components/master-data/ColorPicker";
+import { getIdentityColor } from "@/lib/domain/identity-color";
 import { createSubjectAction, toggleSubjectStatusAction } from "@/lib/application/master-data.actions";
 import { NameOnlyCreateForm } from "@/components/master-data/NameOnlyCreateForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
@@ -53,6 +55,15 @@ export default async function MapelPage() {
             id={subject.id}
             toggleAction={toggleSubjectStatusAction}
             dependencyWarnings={bySubject.get(subject.id)}
+            accentColor={getIdentityColor(subject.colorKey)?.accent}
+            trailing={
+              <ColorPicker
+                subjectId={subject.id}
+                subjectName={subject.name}
+                currentKey={subject.colorKey}
+                totalSubjects={subjects.length}
+              />
+            }
           />
         ))}
       </div>

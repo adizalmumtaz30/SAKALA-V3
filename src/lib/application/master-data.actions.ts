@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { getPrimarySchool } from "@/lib/data-access/school";
 import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
 import { recordHistory } from "@/lib/data-access/history";
+import { listSubjects, updateSubjectColor } from "@/lib/data-access/subject";
+import { nextAvailableColorKey, getIdentityColor } from "@/lib/domain/identity-color";
 
 export interface FormState {
   error?: string;
@@ -93,12 +95,19 @@ export async function createSubjectAction(
   const supabase = await createClient();
   const school = await getPrimarySchool(supabase);
 
+  // Identitas warna diberikan otomatis dari slot yang belum terpakai
+  // (Bagian E.1.2) — operator tidak perlu memilih warna saat menambah data,
+  // tapi tetap bisa menggantinya nanti.
+  const existingSubjects = await listSubjects(supabase);
+  const colorKey = nextAvailableColorKey(existingSubjects.map((s) => s.colorKey));
+
   const { data, error } = await supabase
     .from("subject")
     .insert({
       school_id: school?.id ?? null,
       name,
       status: "active",
+      color_key: colorKey,
     })
     .select("id")
     .single();
@@ -267,4 +276,30 @@ export async function toggleRoomStatusAction(formData: FormData) {
   });
 
   revalidatePath("/ruang");
+}
+
+export async function setSubjectColorAction(formData: FormData) {
+  const id = String(formData.get("id"));
+  const colorKey = String(formData.get("colorKey"));
+  if (!id || !getIdentityColor(colorKey)) return;
+
+  const supabase = await createClient();
+  await updateSubjectColor(supabase, { id, colorKey });
+
+  const { data } = await supabase
+    .from("subject")
+    .select("name")
+    .eq("id", id)
+    .single();
+  const year = await getWorkspaceAcademicYear(supabase);
+  await recordHistory(supabase, {
+    academicYearId: year?.id ?? null,
+    entityType: "mapel",
+    entityId: id,
+    action: "set_color",
+    summary: `Warna identitas ${data?.name ?? ""} diubah ke ${getIdentityColor(colorKey)?.label}`,
+  });
+
+  revalidatePath("/mapel");
+  revalidatePath("/jadwal");
 }

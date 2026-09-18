@@ -135,7 +135,7 @@ export default async function BerandaPage() {
         <PageHeader kicker={`TAHUN AJARAN ${academicYear.label}`} title="Beranda" />
 
         <div className="mt-8 rounded-2xl border border-hairline bg-surface p-5">
-          <h2 className="text-[13.5px] font-medium text-ink">
+          <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
             Kesiapan data
           </h2>
           <ul className="mt-3 space-y-1">
@@ -156,8 +156,8 @@ export default async function BerandaPage() {
                     <span className="text-[13px] text-ink-muted">
                       {item.label}
                     </span>
-                    <span className="ml-auto text-[11px] text-ink-faint">
-                      {item.count} data
+                    <span className="ml-auto text-[15px] font-semibold tabular-nums text-ink">
+                      {item.count}
                     </span>
                   </Link>
                 </li>

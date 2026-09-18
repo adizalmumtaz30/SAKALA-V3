@@ -8,4 +8,6 @@ export interface Subject {
   category: string | null;
   status: SubjectStatus;
   notes: string | null;
+  /** Identitas warna tunggal (Bagian E.1.2) — key dari IDENTITY_COLORS. */
+  colorKey: string | null;
 }

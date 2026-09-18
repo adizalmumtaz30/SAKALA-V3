@@ -9,6 +9,7 @@ import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assig
 import { toggleBebanMengajarStatusAction } from "@/lib/application/teaching-assignment.actions";
 import { CreateBebanMengajarForm } from "@/components/master-data/CreateBebanMengajarForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
+import { getIdentityColor } from "@/lib/domain/identity-color";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 
@@ -92,6 +93,7 @@ export default async function BebanMengajarPage() {
             status={a.status}
             id={a.id}
             toggleAction={toggleBebanMengajarStatusAction}
+            accentColor={getIdentityColor(a.subjectColorKey)?.accent}
           />
         ))}
       </div>

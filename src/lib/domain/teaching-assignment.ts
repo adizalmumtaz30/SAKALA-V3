@@ -18,5 +18,6 @@ export interface TeachingAssignment {
   // Denormalized for display — populated by the data-access join, not stored.
   teacherName: string;
   subjectName: string;
+  subjectColorKey: string | null;
   className: string;
 }
