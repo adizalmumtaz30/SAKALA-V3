@@ -6,6 +6,7 @@ import { listTimeStructureForYear } from "@/lib/data-access/time-structure";
 import { listTeachers } from "@/lib/data-access/teacher";
 import { listClassesForYear } from "@/lib/data-access/class";
 import { listRooms } from "@/lib/data-access/room";
+import { listSubjects } from "@/lib/data-access/subject";
 import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
 import { listScheduleEntriesForYear } from "@/lib/data-access/schedule";
 import { computeJpProgress } from "@/lib/application/schedule-conflict";
@@ -16,7 +17,7 @@ import { PerspectiveTabs } from "@/components/schedule/PerspectiveTabs";
 import { EntitySelect } from "@/components/schedule/EntitySelect";
 import { PrintButton } from "@/components/ui/PrintButton";
 
-type View = "sekolah" | "kelas" | "guru" | "ruang";
+type View = "sekolah" | "kelas" | "guru" | "mapel" | "ruang";
 
 export default async function JadwalPage({
   searchParams,
@@ -24,7 +25,7 @@ export default async function JadwalPage({
   searchParams: Promise<{ view?: string; entity?: string }>;
 }) {
   const { view: rawView, entity } = await searchParams;
-  const view: View = (["kelas", "guru", "ruang"].includes(rawView ?? "")
+  const view: View = (["kelas", "guru", "mapel", "ruang"].includes(rawView ?? "")
     ? rawView
     : "sekolah") as View;
 
@@ -83,6 +84,11 @@ export default async function JadwalPage({
     entityOptions = teachers
       .filter((t) => t.status === "active")
       .map((t) => ({ id: t.id, name: t.name }));
+  } else if (view === "mapel") {
+    const subjects = await listSubjects(supabase);
+    entityOptions = subjects
+      .filter((s) => s.status === "active")
+      .map((s) => ({ id: s.id, name: s.name }));
   } else if (view === "ruang") {
     const rooms = await listRooms(supabase);
     entityOptions = rooms
@@ -104,9 +110,9 @@ export default async function JadwalPage({
   const selectedId = entity ?? entityOptions[0]?.id;
   const selectedName = entityOptions.find((o) => o.id === selectedId)?.name;
   if (view !== "sekolah") {
-    contextLabel = selectedName
-      ? selectedName
-      : `Belum ada ${view === "kelas" ? "kelas" : view === "guru" ? "guru" : "ruang"} aktif`;
+    const emptyNoun =
+      view === "kelas" ? "kelas" : view === "guru" ? "guru" : view === "mapel" ? "mapel" : "ruang";
+    contextLabel = selectedName ? selectedName : `Belum ada ${emptyNoun} aktif`;
   }
 
   return (
@@ -166,7 +172,9 @@ export default async function JadwalPage({
                 ? (e) => e.classId === selectedId
                 : view === "guru"
                   ? (e) => e.teacherId === selectedId
-                  : (e) => e.roomId === selectedId
+                  : view === "mapel"
+                    ? (e) => e.subjectId === selectedId
+                    : (e) => e.roomId === selectedId
           }
         />
       </div>

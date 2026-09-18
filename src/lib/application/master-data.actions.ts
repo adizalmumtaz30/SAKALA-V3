@@ -303,3 +303,71 @@ export async function setSubjectColorAction(formData: FormData) {
   revalidatePath("/mapel");
   revalidatePath("/jadwal");
 }
+
+// ---------------------------------------------------------------------------
+// Ubah nama (Bagian V.1) — ✏️ per baris di Guru/Mapel/Kelas/Ruang.
+//
+// Sengaja hanya field "name" yang bisa diubah lewat sini: konsisten dengan
+// model one-input yang sudah dipakai untuk membuat data (Bagian 18, LOCKED),
+// dan "name" satu-satunya kolom yang pasti ada di keempat entitas. Field
+// lain (NIP, kapasitas ruang, dst.) masih lewat form masing-masing bila
+// nanti dibutuhkan — bukan dipaksa masuk ke satu form edit generik.
+// ---------------------------------------------------------------------------
+
+async function renameEntity(
+  table: "teacher" | "subject" | "class" | "room",
+  entityLabel: string,
+  historyEntityType: string,
+  formData: FormData,
+): Promise<FormState> {
+  const id = String(formData.get("id") ?? "");
+  const name = String(formData.get("name") ?? "").trim();
+  if (!id) return { error: "Data tidak ditemukan." };
+  if (!name) return { error: `Nama ${entityLabel} wajib diisi.` };
+
+  const supabase = await createClient();
+  const { data: before } = await supabase.from(table).select("name").eq("id", id).single();
+
+  const { error } = await supabase.from(table).update({ name }).eq("id", id);
+  if (error) return { error: error.message };
+
+  const year = await getWorkspaceAcademicYear(supabase);
+  await recordHistory(supabase, {
+    academicYearId: year?.id ?? null,
+    entityType: historyEntityType,
+    entityId: id,
+    action: "update",
+    summary:
+      before?.name && before.name !== name
+        ? `${entityLabel} "${before.name}" diganti nama jadi "${name}"`
+        : `${entityLabel} "${name}" diperbarui`,
+  });
+
+  return emptyState;
+}
+
+export async function updateTeacherAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const result = await renameEntity("teacher", "guru", "guru", formData);
+  revalidatePath("/guru");
+  return result;
+}
+
+export async function updateSubjectAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const result = await renameEntity("subject", "mata pelajaran", "mapel", formData);
+  revalidatePath("/mapel");
+  revalidatePath("/jadwal");
+  return result;
+}
+
+export async function updateClassAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const result = await renameEntity("class", "kelas", "kelas", formData);
+  revalidatePath("/kelas");
+  revalidatePath("/jadwal");
+  return result;
+}
+
+export async function updateRoomAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const result = await renameEntity("room", "ruang", "ruang", formData);
+  revalidatePath("/ruang");
+  return result;
+}

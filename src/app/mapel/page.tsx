@@ -6,7 +6,7 @@ import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assig
 import { computeDeactivationWarnings } from "@/lib/application/diagnostics";
 import { ColorPicker } from "@/components/master-data/ColorPicker";
 import { getIdentityColor } from "@/lib/domain/identity-color";
-import { createSubjectAction, toggleSubjectStatusAction } from "@/lib/application/master-data.actions";
+import { createSubjectAction, toggleSubjectStatusAction, updateSubjectAction } from "@/lib/application/master-data.actions";
 import { NameOnlyCreateForm } from "@/components/master-data/NameOnlyCreateForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -56,6 +56,8 @@ export default async function MapelPage() {
             toggleAction={toggleSubjectStatusAction}
             dependencyWarnings={bySubject.get(subject.id)}
             accentColor={getIdentityColor(subject.colorKey)?.accent}
+            viewScheduleHref={`/jadwal?view=mapel&entity=${subject.id}`}
+            renameAction={updateSubjectAction}
             trailing={
               <ColorPicker
                 subjectId={subject.id}

@@ -10,6 +10,13 @@ import type { TeachingAssignment } from "@/lib/domain/teaching-assignment";
  *  2. Satu kelas tidak bisa menerima dua pelajaran pada jam yang sama.
  *  3. Satu ruang tidak bisa dipakai dua rombongan pada jam yang sama.
  *
+ * Aturan 1 & 2 SUDAH ditegakkan database sebagai UNIQUE CONSTRAINT
+ * (no_teacher_clash, no_class_clash pada schedule_entry) — pengecekan di
+ * sini adalah lapisan PERTAMA yang memberi pesan bahasa operator SEBELUM
+ * constraint itu sempat tersentuh, bukan pengganti constraint-nya. Aturan
+ * ruang tidak ada padanan constraint-nya (room_id boleh kosong), jadi
+ * murni ditegakkan di sini.
+ *
  * Prinsip (dari insiden nyata V2): bentrok harus diketahui SEBELUM
  * disimpan, bukan sesudah — dan pesannya menyebut nama asli, bukan kode
  * atau warna saja.
@@ -22,7 +29,8 @@ export interface Conflict {
 }
 
 interface Candidate {
-  timeSlotId: string;
+  day: string;
+  periodNumber: number;
   teacherId: string;
   teacherName: string;
   classId: string;
@@ -40,7 +48,8 @@ export function findConflicts(
 ): Conflict[] {
   const sameSlot = existing.filter(
     (e) =>
-      e.timeSlotId === candidate.timeSlotId &&
+      e.day === candidate.day &&
+      e.periodNumber === candidate.periodNumber &&
       e.id !== candidate.ignoreEntryId,
   );
 

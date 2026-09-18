@@ -5,7 +5,7 @@ import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
 import { listClassesForYear } from "@/lib/data-access/class";
 import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
 import { computeDeactivationWarnings } from "@/lib/application/diagnostics";
-import { toggleClassStatusAction } from "@/lib/application/master-data.actions";
+import { toggleClassStatusAction, updateClassAction } from "@/lib/application/master-data.actions";
 import { CreateClassForm } from "@/components/master-data/CreateClassForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -70,6 +70,9 @@ export default async function KelasPage() {
             id={schoolClass.id}
             toggleAction={toggleClassStatusAction}
             dependencyWarnings={byClass.get(schoolClass.id)}
+            viewScheduleHref={`/jadwal?view=kelas&entity=${schoolClass.id}`}
+            addScheduleHref={`/jadwal?view=kelas&entity=${schoolClass.id}`}
+            renameAction={updateClassAction}
           />
         ))}
       </div>
