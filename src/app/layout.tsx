@@ -9,6 +9,8 @@ import {
   getWorkspaceAcademicYear,
   listAcademicYears,
 } from "@/lib/data-access/academic-year";
+import { CommandPalette } from "@/components/shell/CommandPalette";
+import { loadCommandItems } from "@/lib/application/command-palette";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -33,6 +35,12 @@ export default async function RootLayout({
     school ? listAcademicYears(supabase, school.id).catch(() => []) : Promise.resolve([]),
   ]);
 
+  // Bagian F.3 — data palette dimuat sekali di shell, lalu difilter di klien.
+  const commandItems = await loadCommandItems(
+    supabase,
+    academicYear?.id ?? null,
+  ).catch(() => []);
+
   return (
     <html lang="id" className={`${inter.variable} h-full antialiased`}>
       <body className="h-full">
@@ -40,6 +48,7 @@ export default async function RootLayout({
           <AppShell school={school} academicYear={academicYear} academicYears={academicYears}>
             {children}
           </AppShell>
+          <CommandPalette items={commandItems} />
         </ToastProvider>
       </body>
     </html>

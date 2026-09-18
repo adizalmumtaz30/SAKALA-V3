@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { ScheduleCanvas } from "@/components/schedule/ScheduleCanvas";
 import { PerspectiveTabs } from "@/components/schedule/PerspectiveTabs";
 import { EntitySelect } from "@/components/schedule/EntitySelect";
+import { PrintButton } from "@/components/ui/PrintButton";
 
 type View = "sekolah" | "kelas" | "guru" | "ruang";
 
@@ -100,17 +101,32 @@ export default async function JadwalPage({
         title={contextLabel}
         description={`Tahun ajaran ${academicYear.label} — struktur kanvas mingguan. Isi jadwal menyusul begitu Scheduling Engine dibangun.`}
         action={
-          <Link
-            href="/jadwal/struktur-waktu"
-            className="flex items-center gap-1.5 rounded-lg border border-hairline-strong px-3 py-1.5 text-[12.5px] text-ink-muted hover:text-ink"
-          >
-            <Settings2 size={14} strokeWidth={1.75} />
-            Pengaturan Jadwal
-          </Link>
+          <div className="flex items-center gap-2">
+            <PrintButton label="Cetak Jadwal" />
+            <Link
+              href="/jadwal/struktur-waktu"
+              data-print="hide"
+              className="flex items-center gap-1.5 rounded-lg border border-hairline-strong px-3 py-1.5 text-[12.5px] text-ink-muted hover:text-ink"
+            >
+              <Settings2 size={14} strokeWidth={1.75} />
+              Pengaturan Jadwal
+            </Link>
+          </div>
         }
       />
 
-      <div className="mt-5 flex flex-wrap items-center gap-3">
+      {/* Judul lembar — hanya tercetak, memberi konteks pada kertas yang
+          lepas dari aplikasi (Bagian F.7). */}
+      <div data-print="title" className="mb-4">
+        <p className="text-[17px] font-semibold text-ink">
+          Jadwal {contextLabel}
+        </p>
+        <p className="text-[12px] text-ink-muted">
+          Tahun ajaran {academicYear.label}
+        </p>
+      </div>
+
+      <div className="mt-5 flex flex-wrap items-center gap-3" data-print="hide">
         <PerspectiveTabs active={view} />
         {view !== "sekolah" && entityOptions.length > 0 && (
           <EntitySelect view={view} options={entityOptions} selectedId={selectedId} />

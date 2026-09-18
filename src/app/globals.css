@@ -122,3 +122,114 @@ body {
   from { opacity: 0; transform: translateY(8px) scale(0.97); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* ============================================================
+   LAPISAN CETAK (Bagian F.7)
+   ------------------------------------------------------------
+   Alasan ada: jadwal sekolah pada akhirnya ditempel di dinding dan
+   dibagikan ke guru dalam bentuk kertas/PDF. Kalau hasil akhirnya tidak
+   bisa dicetak rapi, operator tetap menyalin manual ke Word/Excel —
+   pekerjaan ganda yang justru paling ingin dihilangkan.
+
+   Prinsip:
+   - Kromium aplikasi (sidebar, topbar, tombol, motif) hilang total.
+   - Konten memakai seluruh lebar kertas, latar putih, teks hitam.
+   - Warna identitas tetap tercetak (print-color-adjust) TAPI tidak
+     pernah jadi satu-satunya pembeda — strip aksen tetap tercetak
+     sebagai bentuk, jadi tetap terbaca di printer hitam-putih.
+   ============================================================ */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 12mm;
+  }
+
+  /* Paksa mode terang saat cetak apa pun tema layarnya — tinta hemat,
+     kontras maksimal. */
+  :root,
+  :root[data-theme="dark"] {
+    --canvas: #ffffff;
+    --sidebar: #ffffff;
+    --surface: #ffffff;
+    --surface-elevated: #ffffff;
+    --surface-overlay: #ffffff;
+    --surface-focus: #f4f4f5;
+    --ink: #000000;
+    --ink-muted: #3f3f46;
+    --ink-faint: #71717a;
+    --hairline: #d4d4d8;
+    --hairline-strong: #a1a1aa;
+  }
+
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  /* Kromium aplikasi: tidak ada gunanya di atas kertas. */
+  aside,
+  header,
+  [data-print="hide"] {
+    display: none !important;
+  }
+
+  /* Shell memakai h-dvh + overflow-auto untuk layar; di kertas itu
+     memotong konten jadi satu halaman. Lepaskan. */
+  main,
+  main > div,
+  .print-flow {
+    position: static !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  /* Container layar dibatasi max-w-7xl dan berpadding tebal; di kertas
+     itu membuang ruang mahal. */
+  main .mx-auto {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Warna identitas & strip aksen harus ikut tercetak. */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Jangan pernah memutus satu baris jadwal di tengah halaman. */
+  tr,
+  [data-print="keep"] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  /* Judul kertas — hanya muncul saat dicetak, memberi konteks pada
+     lembar yang lepas dari aplikasi. */
+  [data-print="title"] {
+    display: block !important;
+  }
+}
+
+/* Judul khusus cetak disembunyikan di layar. */
+[data-print="title"] {
+  display: none;
+}
+
+/* Label tombol modifier menyesuaikan platform tanpa JS (Bagian F.3):
+   default "Ctrl", jadi "⌘" hanya di perangkat Apple. */
+.kbd-mod::before {
+  content: "Ctrl";
+}
+@supports (-apple-pay-button-style: inline) {
+  .kbd-mod::before {
+    content: "⌘";
+  }
+}
