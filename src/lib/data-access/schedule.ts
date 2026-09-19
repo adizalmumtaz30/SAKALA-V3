@@ -25,7 +25,9 @@ const SELECT = `
   subject:subject_id(name, color_key),
   class:class_id(name),
   room:room_id(name)
-`;\n\nfunction toDomain(row: ScheduleEntryRow): ScheduleEntry {
+`;
+
+function toDomain(row: ScheduleEntryRow): ScheduleEntry {
   return {
     id: row.id,
     academicYearId: row.academic_year_id,
