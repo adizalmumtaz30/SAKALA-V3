@@ -16,7 +16,6 @@ import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assig
 import { listTimeStructureForYear } from "@/lib/data-access/time-structure";
 import { computeDiagnosticIssues } from "@/lib/application/diagnostics";
 import { IssueList } from "@/components/ui/IssueList";
-import { PageHeader } from "@/components/ui/PageHeader";
 import {
   CreateSchoolForm,
   CreateAcademicYearForm,
@@ -119,75 +118,96 @@ export default async function BerandaPage() {
   });
   const hasBlockingIssue = issues.some((i) => i.severity === "blocked");
   const readyForSchedule = assignments.length > 0 && !hasBlockingIssue;
+  const systemState =
+    !assignments.length || !timeSlots.length
+      ? "missing"
+      : hasBlockingIssue
+        ? "warning"
+        : "ready";
 
   return (
-    <div className="relative mx-auto max-w-6xl px-6 py-10">
-      {/* Atmospheric heritage layer — discovered, not displayed */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-24 -top-16 h-72 w-72 opacity-[0.05]"
-        style={{
-          background:
-            "radial-gradient(closest-side, var(--color-champagne), transparent 70%)",
-        }}
+    <div className="dashboard-page mx-auto max-w-[1440px] px-5 py-6 sm:px-7 lg:px-9">
+      <DashboardHeroIllustration
+        state={systemState}
+        schoolName={school.schoolName}
+        academicYear={academicYear.label}
+        teacherCount={teachers.length}
+        subjectCount={subjects.length}
+        classCount={classes.length}
+        assignmentCount={assignments.length}
+        timeSlotCount={timeSlots.length}
+        issueCount={issues.length}
       />
 
-      <div className="relative">
-        <PageHeader
-          kicker={`TAHUN AJARAN ${academicYear.label}`}
-          title="Beranda"
-          action={<DashboardHeroIllustration />}
-        />
-
-        <div className="mt-8 rounded-2xl border border-hairline bg-surface p-5">
-          <h2 className="text-[11px] font-medium uppercase tracking-[0.14em] text-ink-faint">
-            Kesiapan data
-          </h2>
-          <ul className="mt-3 space-y-1">
+      <div className="dashboard-below-grid">
+        <section className="dashboard-support-panel" aria-labelledby="dashboard-check-title">
+          <div className="dashboard-support-heading">
+            <div>
+              <p className="dashboard-support-eyebrow">KONTROL KESIAPAN</p>
+              <h2 id="dashboard-check-title">Perlu Dicek</h2>
+            </div>
+            <span className="dashboard-support-count">{issues.length}</span>
+          </div>
+          <div className="dashboard-checklist">
             {checklist.map((item) => {
               const Icon = item.icon;
               return (
-                <li key={item.label}>
-                  <Link
-                    href={item.href}
-                    className="flex items-center gap-3 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-surface-elevated"
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                        item.ready ? "bg-status-ready" : "bg-status-incomplete"
-                      }`}
-                    />
-                    <Icon size={14} strokeWidth={1.75} className="text-ink-faint" />
-                    <span className="text-[13px] text-ink-muted">
-                      {item.label}
-                    </span>
-                    <span className="ml-auto text-[15px] font-semibold tabular-nums text-ink">
-                      {item.count}
-                    </span>
-                  </Link>
-                </li>
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="dashboard-check-item"
+                >
+                  <span
+                    className={`dashboard-check-indicator dashboard-check-indicator--${item.ready ? "ready" : "pending"}`}
+                    aria-hidden
+                  />
+                  <Icon size={15} strokeWidth={1.65} className="dashboard-check-icon" />
+                  <span className="dashboard-check-label">{item.label}</span>
+                  <span className="dashboard-check-value">{item.count}</span>
+                </Link>
               );
             })}
-          </ul>
-        </div>
-
-        <IssueList issues={issues} />
-
-        <div className="mt-4 rounded-2xl border border-hairline bg-surface p-5">
-          <div className="flex items-center gap-2">
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${
-                readyForSchedule ? "bg-status-ready" : "bg-status-incomplete"
-              }`}
-            />
-            <h2 className="text-[13.5px] font-medium text-ink">Jadwal</h2>
           </div>
-          <p className="mt-1.5 text-[13px] text-ink-muted">
+        </section>
+
+        <section className="dashboard-support-panel" aria-labelledby="dashboard-schedule-title">
+          <div className="dashboard-support-heading">
+            <div>
+              <p className="dashboard-support-eyebrow">STATUS OPERASIONAL</p>
+              <h2 id="dashboard-schedule-title">Jadwal</h2>
+            </div>
+            <span className={`dashboard-operational-state dashboard-operational-state--${systemState}`}>
+              {systemState === "ready" ? "Siap" : systemState === "warning" ? "Perlu Dicek" : "Belum Lengkap"}
+            </span>
+          </div>
+          <p className="dashboard-support-copy">
             {readyForSchedule
-              ? "Data pengajaran sudah lengkap dan konsisten — kanvas jadwal & Scheduling Engine belum dibangun, menyusul fase berikutnya."
-              : "Belum dapat dibuat — lengkapi data guru, mapel, kelas, beban mengajar, dan struktur waktu terlebih dahulu."}
+              ? "Data pengajaran sudah lengkap dan konsisten. Kanvas jadwal dan Scheduling Engine akan menjadi tahap berikutnya."
+              : "Lengkapi data guru, mapel, kelas, beban mengajar, dan struktur waktu sebelum memulai penjadwalan."}
           </p>
-        </div>
+          <Link href="/jadwal" className="dashboard-support-link">
+            Buka Jadwal <span aria-hidden>→</span>
+          </Link>
+        </section>
+
+        <section className="dashboard-support-panel dashboard-support-panel--actions" aria-labelledby="dashboard-actions-title">
+          <div className="dashboard-support-heading">
+            <div>
+              <p className="dashboard-support-eyebrow">AKSI CEPAT</p>
+              <h2 id="dashboard-actions-title">Lanjutkan pekerjaan</h2>
+            </div>
+          </div>
+          <div className="dashboard-action-links">
+            <Link href="/guru" className="dashboard-action-link">Tambah Guru</Link>
+            <Link href="/beban-mengajar" className="dashboard-action-link">Atur Beban</Link>
+            <Link href="/jadwal/struktur-waktu" className="dashboard-action-link">Struktur Waktu</Link>
+            <Link href="/import" className="dashboard-action-link">Import Data</Link>
+          </div>
+        </section>
+      </div>
+
+      <div className="dashboard-issues">
+        <IssueList issues={issues} />
       </div>
     </div>
   );
