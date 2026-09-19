@@ -10,14 +10,12 @@ interface DeleteBebanMengajarButtonProps {
   id: string;
   label: string;
   meta: string;
-  hasScheduleEntries?: boolean;
 }
 
 export function DeleteBebanMengajarButton({
   id,
   label,
   meta,
-  hasScheduleEntries = false,
 }: DeleteBebanMengajarButtonProps) {
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -43,7 +41,7 @@ export function DeleteBebanMengajarButton({
 
   const impactLines = [
     `${label} — ${meta} akan dihapus permanen dari Beban Mengajar.`,
-    ...(hasScheduleEntries ? ["Jadwal yang memakai beban ini juga akan ikut terhapus."] : []),
+    "Jika sudah dipakai di Jadwal, entri jadwal terkait juga akan ikut terhapus.",
     "Tindakan ini tidak dapat di-undo.",
   ];
 
