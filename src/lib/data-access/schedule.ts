@@ -19,14 +19,6 @@ interface ScheduleEntryRow {
   room: { name: string } | null;
 }
 
-const SELECT = `
-  *,
-  teacher:teacher_id(name),
-  subject:subject_id(name, color_key),
-  class:class_id(name),
-  room:room_id(name)
-`;
-
 function toDomain(row: ScheduleEntryRow): ScheduleEntry {
   return {
     id: row.id,
@@ -61,6 +53,14 @@ export async function listScheduleEntriesForYear(
   return (data as unknown as ScheduleEntryRow[]).map(toDomain);
 }
 
+const SELECT = `
+  *,
+  teacher:teacher_id(name),
+  subject:subject_id(name, color_key),
+  class:class_id(name),
+  room:room_id(name)
+`;
+
 /** Kode error Postgres untuk pelanggaran UNIQUE constraint. */
 const UNIQUE_VIOLATION = "23505";
 
@@ -68,41 +68,58 @@ export type ScheduleWriteResult =
   | { ok: true }
   | { ok: false; clash: "teacher" | "class" | "duplicate" | "unknown" };
 
-export async function createScheduleEntry(
+export interface ScheduleEntryInput {
+  academicYearId: string;
+  teachingAssignmentId: string;
+  teacherId: string;
+  subjectId: string;
+  classId: string;
+  day: string;
+  periodNumber: number;
+  roomId: string | null;
+}
+
+/**
+ * Menyimpan beberapa JP sekaligus dalam satu INSERT.
+ * Karena satu statement INSERT bersifat atomik di Postgres, jika salah satu
+ * slot bentrok maka seluruh rentetan JP tidak jadi tersimpan sebagian.
+ */
+export async function createScheduleEntries(
   supabase: SupabaseClient,
-  input: {
-    academicYearId: string;
-    teachingAssignmentId: string;
-    teacherId: string;
-    subjectId: string;
-    classId: string;
-    day: string;
-    periodNumber: number;
-    roomId: string | null;
-  },
+  inputs: ScheduleEntryInput[],
 ): Promise<ScheduleWriteResult> {
-  const { error } = await supabase.from("schedule_entry").insert({
-    academic_year_id: input.academicYearId,
-    teaching_assignment_id: input.teachingAssignmentId,
-    teacher_id: input.teacherId,
-    subject_id: input.subjectId,
-    class_id: input.classId,
-    day: input.day,
-    period_number: input.periodNumber,
-    room_id: input.roomId,
-    source: "manual",
-    locked: true,
-  });
+  if (inputs.length === 0) return { ok: false, clash: "unknown" };
+
+  const { error } = await supabase.from("schedule_entry").insert(
+    inputs.map((input) => ({
+      academic_year_id: input.academicYearId,
+      teaching_assignment_id: input.teachingAssignmentId,
+      teacher_id: input.teacherId,
+      subject_id: input.subjectId,
+      class_id: input.classId,
+      day: input.day,
+      period_number: input.periodNumber,
+      room_id: input.roomId,
+      source: "manual",
+      locked: true,
+    })),
+  );
 
   if (!error) return { ok: true };
   if (error.code === UNIQUE_VIOLATION) {
-    // Jaring pengaman kedua — jalur normal sudah dicegat oleh pengecekan
-    // di lib/application/schedule-conflict.ts sebelum insert ini dipanggil.
     if (error.message.includes("no_teacher_clash")) return { ok: false, clash: "teacher" };
     if (error.message.includes("no_class_clash")) return { ok: false, clash: "class" };
     return { ok: false, clash: "duplicate" };
   }
   throw error;
+}
+
+/** Kompatibilitas untuk pemanggil yang hanya menempatkan satu JP. */
+export async function createScheduleEntry(
+  supabase: SupabaseClient,
+  input: ScheduleEntryInput,
+): Promise<ScheduleWriteResult> {
+  return createScheduleEntries(supabase, [input]);
 }
 
 export async function deleteScheduleEntry(
