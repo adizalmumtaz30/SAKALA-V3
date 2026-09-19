@@ -142,6 +142,29 @@ export async function assignScheduleAction(
   const room = rooms.find((r) => r.id === roomId);
   const maxConsecutiveJp = academicYear?.maxConsecutiveJp ?? null;
 
+  // Sertakan slot yang sedang akan ditambahkan saat mengecek batas JP
+  // berturut-turut, supaya 1+3 JP tidak lolos ketika batasnya 3.
+  const pendingEntries = consecutiveSlots.map((slot) => ({
+    id: "pending-" + slot.id,
+    academicYearId,
+    teachingAssignmentId,
+    roomId,
+    teacherId: assignment.teacherId,
+    subjectId: assignment.subjectId,
+    classId: assignment.classId,
+    day: slot.day,
+    periodNumber: slot.periodNumber,
+    source: "manual" as const,
+    locked: true,
+    teacherName: assignment.teacherName,
+    subjectName: assignment.subjectName,
+    subjectColorKey: assignment.subjectColorKey,
+    className: assignment.className,
+    roomName: room?.name ?? null,
+  }));
+
+  const validationEntries = entries.concat(pendingEntries);
+
   const allConflicts = consecutiveSlots.flatMap((slot) =>
     findConflicts(
       {
@@ -154,7 +177,7 @@ export async function assignScheduleAction(
         roomId,
         roomName: room?.name ?? null,
       },
-      entries,
+      validationEntries.filter((entry) => entry.id !== "pending-" + slot.id),
       maxConsecutiveJp,
     ).map(
       (conflict) =>
