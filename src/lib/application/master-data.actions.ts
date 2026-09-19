@@ -430,15 +430,36 @@ async function bulkSetStatus(
   return { success: `${ids.length} data ${status === "active" ? "diaktifkan" : "dinonaktifkan"}.` };
 }
 
-export async function bulkSetTeacherStatusAction(ids: string[], status: "active" | "inactive") {
-  return bulkSetStatus("teacher", "guru", "guru", ids, status);
+// §Bugfix runtime — sebelumnya dipanggil dari halaman lewat pembungkus
+// panah `(ids) => bulkSetTeacherStatusAction(ids, "active")`. Itu MEMBUAT
+// closure baru yang kehilangan status "Server Action"-nya (cuma
+// referensi LANGSUNG ke fungsi ber-"use server" yang boleh lewat batas
+// Server->Client). Efeknya: "Functions cannot be passed directly to
+// Client Components" di runtime setiap buka /guru /mapel /kelas /ruang —
+// lolos tsc & eslint karena ini aturan RSC, bukan aturan tipe. Diperbaiki
+// dengan 8 fungsi literal (bukan 4 + parameter status) supaya halaman
+// bisa meneruskan referensi fungsi apa adanya, tanpa pembungkus.
+export async function bulkActivateTeacherAction(ids: string[]) {
+  return bulkSetStatus("teacher", "guru", "guru", ids, "active");
 }
-export async function bulkSetSubjectStatusAction(ids: string[], status: "active" | "inactive") {
-  return bulkSetStatus("subject", "mata pelajaran", "mapel", ids, status);
+export async function bulkDeactivateTeacherAction(ids: string[]) {
+  return bulkSetStatus("teacher", "guru", "guru", ids, "inactive");
 }
-export async function bulkSetClassStatusAction(ids: string[], status: "active" | "inactive") {
-  return bulkSetStatus("class", "kelas", "kelas", ids, status);
+export async function bulkActivateSubjectAction(ids: string[]) {
+  return bulkSetStatus("subject", "mata pelajaran", "mapel", ids, "active");
 }
-export async function bulkSetRoomStatusAction(ids: string[], status: "active" | "inactive") {
-  return bulkSetStatus("room", "ruang", "ruang", ids, status);
+export async function bulkDeactivateSubjectAction(ids: string[]) {
+  return bulkSetStatus("subject", "mata pelajaran", "mapel", ids, "inactive");
+}
+export async function bulkActivateClassAction(ids: string[]) {
+  return bulkSetStatus("class", "kelas", "kelas", ids, "active");
+}
+export async function bulkDeactivateClassAction(ids: string[]) {
+  return bulkSetStatus("class", "kelas", "kelas", ids, "inactive");
+}
+export async function bulkActivateRoomAction(ids: string[]) {
+  return bulkSetStatus("room", "ruang", "ruang", ids, "active");
+}
+export async function bulkDeactivateRoomAction(ids: string[]) {
+  return bulkSetStatus("room", "ruang", "ruang", ids, "inactive");
 }

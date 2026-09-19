@@ -110,7 +110,7 @@ export default async function BebanMengajarPage() {
               expandable={{
                 icon: <Copy size={14} strokeWidth={1.75} />,
                 label: "Duplikat ke kelas lain",
-                render: (close) => (
+                panel: (
                   <DuplicateBebanMengajarForm
                     academicYearId={academicYear.id}
                     teacherId={a.teacherId}
@@ -119,7 +119,6 @@ export default async function BebanMengajarPage() {
                     subjectName={a.subjectName}
                     defaultTargetJp={a.targetJp}
                     availableClasses={availableClasses}
-                    onDone={close}
                   />
                 ),
               }}

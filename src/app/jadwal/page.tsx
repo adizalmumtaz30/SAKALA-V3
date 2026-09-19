@@ -165,17 +165,8 @@ export default async function JadwalPage({
           entries={entries}
           progress={progress}
           rooms={roomOptions}
-          focusFilter={
-            view === "sekolah" || !selectedId
-              ? undefined
-              : view === "kelas"
-                ? (e) => e.classId === selectedId
-                : view === "guru"
-                  ? (e) => e.teacherId === selectedId
-                  : view === "mapel"
-                    ? (e) => e.subjectId === selectedId
-                    : (e) => e.roomId === selectedId
-          }
+          focusView={view}
+          focusEntityId={selectedId ?? null}
         />
       </div>
     </div>

@@ -5,6 +5,7 @@ import {
   createBebanMengajarAction,
   type FormState,
 } from "@/lib/application/teaching-assignment.actions";
+import { useExpandableClose } from "@/components/master-data/EntityRow";
 import type { SchoolClass } from "@/lib/domain/class";
 
 const initialState: FormState = {};
@@ -20,7 +21,6 @@ interface Props {
    *  dipakai tidak ditawarkan lagi, sama seperti aturan di kanvas jadwal:
    *  jangan sampai operator memilih sesuatu yang pasti ditolak sistem. */
   availableClasses: SchoolClass[];
-  onDone: () => void;
 }
 
 /**
@@ -40,12 +40,15 @@ export function DuplicateBebanMengajarForm({
   subjectName,
   defaultTargetJp,
   availableClasses,
-  onDone,
 }: Props) {
   const [state, formAction, pending] = useActionState(
     createBebanMengajarAction,
     initialState,
   );
+  // §Bugfix runtime — sebelumnya diterima sebagai prop `onDone` (function)
+  // dari Server Component pemanggil, ilegal lintas batas RSC. Sekarang
+  // dibaca lewat context yang disediakan EntityRow sendiri (client).
+  const close = useExpandableClose();
 
   // Beri operator waktu membaca konfirmasi sebelum panel menutup sendiri.
   // Effect, bukan pemanggilan langsung di body render — supaya timer cuma
@@ -53,9 +56,9 @@ export function DuplicateBebanMengajarForm({
   // selama state.success tetap truthy.
   useEffect(() => {
     if (!state.success) return;
-    const t = setTimeout(onDone, 900);
+    const t = setTimeout(() => close?.(), 900);
     return () => clearTimeout(t);
-  }, [state.success, onDone]);
+  }, [state.success, close]);
 
   if (availableClasses.length === 0) {
     return (
@@ -123,7 +126,7 @@ export function DuplicateBebanMengajarForm({
         </button>
         <button
           type="button"
-          onClick={onDone}
+          onClick={() => close?.()}
           className="rounded-lg px-3 py-1.5 text-[12.5px] text-ink-muted hover:text-ink"
         >
           Batal

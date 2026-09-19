@@ -1,11 +1,25 @@
 "use client";
 
-import { type ReactNode, useActionState, useEffect, useRef, useState } from "react";
+import { type ReactNode, createContext, useContext, useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Eye, Plus, Pencil, Check, X } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useEntitySelection } from "@/components/master-data/SelectableEntityGrid";
 import { ToggleStatusButton } from "@/components/master-data/ToggleStatusButton";
 import type { FormState } from "@/lib/application/master-data.actions";
+
+/**
+ * §Bugfix runtime — panel `expandable` (mis. Duplikat di Beban Mengajar)
+ * dulu diberi tahu cara menutup dirinya lewat prop `render: (close) =>
+ * ReactNode`, function yang dihitung di Server Component pemanggil. Sama
+ * ilegalnya dengan `renderRow` di SelectableEntityGrid. Sekarang halaman
+ * pemanggil cukup kirim JSX yang SUDAH jadi (`panel`, bukan `render`), dan
+ * konten di dalamnya membaca fungsi tutup lewat context ini kalau perlu.
+ */
+const ExpandableCloseContext = createContext<(() => void) | null>(null);
+export function useExpandableClose() {
+  return useContext(ExpandableCloseContext);
+}
 
 interface EntityRowProps {
   icon: ReactNode;
@@ -33,11 +47,8 @@ interface EntityRowProps {
   expandable?: {
     icon: ReactNode;
     label: string;
-    render: (close: () => void) => ReactNode;
+    panel: ReactNode;
   };
-  /** Bagian VI.4 — checkbox seleksi massal. Undefined = halaman ini belum
-   *  ikut fitur bulk (mis. Beban Mengajar, yang sudah punya Duplikat). */
-  selectable?: { checked: boolean; onToggle: () => void };
 }
 
 const emptyState: FormState = {};
@@ -68,8 +79,12 @@ export function EntityRow({
   addScheduleHref,
   renameAction,
   expandable,
-  selectable,
 }: EntityRowProps) {
+  // §Bugfix runtime -- dulu diterima sebagai prop `selectable` yang harus
+  // dihitung di Server Component pemanggil (butuh function di dalamnya,
+  // ilegal lintas batas RSC). Sekarang dibaca sendiri lewat Context --
+  // undefined kalau EntityRow ini tidak dibungkus SelectableEntityGrid.
+  const selectable = useEntitySelection(id);
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [state, formAction, pending] = useActionState(
@@ -228,7 +243,9 @@ export function EntityRow({
     </div>
     {expandable && expanded && (
       <div className="rounded-b-xl border border-t-0 border-hairline-strong bg-surface-elevated px-4 py-3">
-        {expandable.render(() => setExpanded(false))}
+        <ExpandableCloseContext.Provider value={() => setExpanded(false)}>
+          {expandable.panel}
+        </ExpandableCloseContext.Provider>
       </div>
     )}
     </div>
