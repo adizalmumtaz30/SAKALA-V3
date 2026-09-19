@@ -27,6 +27,50 @@ function toDomain(row: TimeSlotRow): TimeSlot {
   };
 }
 
+/**
+ * Bagian permintaan pemilik produk (Jadwal #1) — "tambah jam ke-" satu per
+ * satu setelah struktur awal dibuat, bukan cuma generate massal di awal.
+ * Jam baru ditambahkan di AKHIR hari (period_number tertinggi + 1), mulai
+ * persis setelah jam terakhir hari itu selesai — konsisten dengan prinsip
+ * perhitungan berantai (Bagian E.1.5 poin 3).
+ */
+export async function appendTimeSlot(
+  supabase: SupabaseClient,
+  input: { academicYearId: string; day: Day; durationMinutes: number },
+): Promise<{ periodNumber: number }> {
+  const { data, error } = await supabase
+    .from("time_structure")
+    .select("*")
+    .eq("academic_year_id", input.academicYearId)
+    .eq("day", input.day)
+    .order("period_number", { ascending: false })
+    .limit(1);
+  if (error) throw error;
+
+  const last = (data as TimeSlotRow[])[0];
+  if (!last) {
+    throw new Error(
+      "Hari ini belum punya jam sama sekali — buat struktur awal dulu lewat Quick Setting.",
+    );
+  }
+
+  const nextPeriod = last.period_number + 1;
+  const start = timeToMinutes(last.end_time);
+  const end = start + input.durationMinutes;
+
+  const { error: insertError } = await supabase.from("time_structure").insert({
+    academic_year_id: input.academicYearId,
+    day: input.day,
+    period_number: nextPeriod,
+    start_time: minutesToTime(start),
+    end_time: minutesToTime(end),
+    type: "mengajar",
+  });
+  if (insertError) throw insertError;
+
+  return { periodNumber: nextPeriod };
+}
+
 export async function listTimeStructureForYear(
   supabase: SupabaseClient,
   academicYearId: string,

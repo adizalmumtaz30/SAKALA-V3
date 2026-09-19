@@ -4,6 +4,7 @@ import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
 import { listTimeStructureForYear } from "@/lib/data-access/time-structure";
 import { GenerateTimeStructureForm } from "@/components/time-structure/GenerateTimeStructureForm";
 import { TimeSlotRow } from "@/components/time-structure/TimeSlotRow";
+import { AddTimeSlotButton } from "@/components/time-structure/AddTimeSlotButton";
 import { DAYS, DAY_LABEL } from "@/lib/domain/time-structure";
 import { PageHeader } from "@/components/ui/PageHeader";
 
@@ -63,6 +64,9 @@ export default async function StrukturWaktuPage() {
                 {slotsByDay.get(day)!.map((slot) => (
                   <TimeSlotRow key={slot.id} slot={slot} />
                 ))}
+              </div>
+              <div className="border-t border-hairline">
+                <AddTimeSlotButton academicYearId={academicYear.id} day={day} />
               </div>
             </div>
           ))}

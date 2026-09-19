@@ -55,6 +55,27 @@ export default async function BebanMengajarPage() {
     activeSubjects.length === 0 ||
     activeClasses.length === 0;
 
+  // Kelompokkan per guru — urutan kemunculan pertama di data (bukan
+  // di-sort ulang) supaya konsisten dengan urutan yang operator kenal.
+  const teacherOrder: string[] = [];
+  const byTeacher = new Map<string, typeof assignments>();
+  for (const a of assignments) {
+    if (!byTeacher.has(a.teacherId)) {
+      teacherOrder.push(a.teacherId);
+      byTeacher.set(a.teacherId, []);
+    }
+    byTeacher.get(a.teacherId)!.push(a);
+  }
+  const teacherGroups = teacherOrder.map((teacherId) => {
+    const rows = byTeacher.get(teacherId)!;
+    return {
+      teacherId,
+      teacherName: rows[0].teacherName,
+      totalJp: rows.reduce((sum, a) => sum + a.targetJp, 0),
+      rows,
+    };
+  });
+
   return (
     <div className="mx-auto max-w-7xl px-6 py-10">
       <PageHeader
@@ -79,52 +100,71 @@ export default async function BebanMengajarPage() {
         )}
       </div>
 
-      <div className="mt-8 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-        {assignments.length === 0 && (
-          <div className="col-span-full rounded-xl border border-hairline bg-surface"><EmptyState
+      {/* Bagian permintaan pemilik produk (Jadwal #5) — dikelompokkan per
+          Guru, bukan daftar datar satu baris per kombinasi Guru+Mapel+Kelas.
+          Satu kartu = satu guru, isinya seluruh Mapel+Kelas yang dia ajar
+          beserta total JP-nya (Bagian E.1.3, prinsip anti-scroll-panjang). */}
+      <div className="mt-8">
+        {assignments.length === 0 ? (
+          <div className="rounded-xl border border-hairline bg-surface"><EmptyState
             icon={<IconBebanMengajar size={16} strokeWidth={1.75} />}
             message="Belum ada beban mengajar untuk tahun ajaran ini."
           /></div>
-        )}
-        {assignments.map((a) => {
-          // Kelas yang belum punya kombinasi Guru+Mapel ini — dihitung per
-          // baris supaya "Duplikat" tidak menawarkan kelas yang pasti
-          // ditolak (unique constraint Guru+Mapel+Kelas).
-          const usedClassIds = new Set(
-            assignments
-              .filter((x) => x.teacherId === a.teacherId && x.subjectId === a.subjectId)
-              .map((x) => x.classId),
-          );
-          const availableClasses = activeClasses.filter((c) => !usedClassIds.has(c.id));
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {teacherGroups.map(({ teacherId, teacherName, totalJp, rows }) => (
+              <section
+                key={teacherId}
+                className="rounded-2xl border border-hairline bg-surface-elevated p-4"
+              >
+                <div className="flex items-center justify-between border-b border-hairline pb-2.5">
+                  <p className="truncate text-[13.5px] font-medium text-ink">{teacherName}</p>
+                  <span className="shrink-0 rounded-full border border-hairline-strong px-2 py-0.5 text-[11px] text-ink-muted">
+                    {totalJp} JP
+                  </span>
+                </div>
+                <div className="mt-2.5 space-y-2">
+                  {rows.map((a) => {
+                    const usedClassIds = new Set(
+                      assignments
+                        .filter((x) => x.teacherId === a.teacherId && x.subjectId === a.subjectId)
+                        .map((x) => x.classId),
+                    );
+                    const availableClasses = activeClasses.filter((c) => !usedClassIds.has(c.id));
 
-          return (
-            <EntityRow
-              key={a.id}
-              icon={<IconBebanMengajar size={15} strokeWidth={1.75} />}
-              name={`${a.teacherName} — ${a.subjectName} — ${a.className}`}
-              meta={`${a.targetJp} JP/minggu`}
-              status={a.status}
-              id={a.id}
-              toggleAction={toggleBebanMengajarStatusAction}
-              accentColor={getIdentityColor(a.subjectColorKey)?.accent}
-              expandable={{
-                icon: <Copy size={14} strokeWidth={1.75} />,
-                label: "Duplikat ke kelas lain",
-                panel: (
-                  <DuplicateBebanMengajarForm
-                    academicYearId={academicYear.id}
-                    teacherId={a.teacherId}
-                    teacherName={a.teacherName}
-                    subjectId={a.subjectId}
-                    subjectName={a.subjectName}
-                    defaultTargetJp={a.targetJp}
-                    availableClasses={availableClasses}
-                  />
-                ),
-              }}
-            />
-          );
-        })}
+                    return (
+                      <EntityRow
+                        key={a.id}
+                        icon={<IconBebanMengajar size={14} strokeWidth={1.75} />}
+                        name={`${a.subjectName} — ${a.className}`}
+                        meta={`${a.targetJp} JP/minggu`}
+                        status={a.status}
+                        id={a.id}
+                        toggleAction={toggleBebanMengajarStatusAction}
+                        accentColor={getIdentityColor(a.subjectColorKey)?.accent}
+                        expandable={{
+                          icon: <Copy size={14} strokeWidth={1.75} />,
+                          label: "Duplikat ke kelas lain",
+                          panel: (
+                            <DuplicateBebanMengajarForm
+                              academicYearId={academicYear.id}
+                              teacherId={a.teacherId}
+                              teacherName={a.teacherName}
+                              subjectId={a.subjectId}
+                              subjectName={a.subjectName}
+                              defaultTargetJp={a.targetJp}
+                              availableClasses={availableClasses}
+                            />
+                          ),
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
