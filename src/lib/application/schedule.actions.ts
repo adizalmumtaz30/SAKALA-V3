@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import {
   listScheduleEntriesForYear,
-  createScheduleEntry,
+  createScheduleEntries,
   deleteScheduleEntry,
   moveScheduleEntry,
 } from "@/lib/data-access/schedule";
