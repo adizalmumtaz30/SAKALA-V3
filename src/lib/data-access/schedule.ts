@@ -19,7 +19,13 @@ interface ScheduleEntryRow {
   room: { name: string } | null;
 }
 
-function toDomain(row: ScheduleEntryRow): ScheduleEntry {
+const SELECT = `
+  *,
+  teacher:teacher_id(name),
+  subject:subject_id(name, color_key),
+  class:class_id(name),
+  room:room_id(name)
+`;\n\nfunction toDomain(row: ScheduleEntryRow): ScheduleEntry {
   return {
     id: row.id,
     academicYearId: row.academic_year_id,
@@ -53,13 +59,7 @@ export async function listScheduleEntriesForYear(
   return (data as unknown as ScheduleEntryRow[]).map(toDomain);
 }
 
-const SELECT = `
-  *,
-  teacher:teacher_id(name),
-  subject:subject_id(name, color_key),
-  class:class_id(name),
-  room:room_id(name)
-`;
+
 
 /** Kode error Postgres untuk pelanggaran UNIQUE constraint. */
 const UNIQUE_VIOLATION = "23505";
