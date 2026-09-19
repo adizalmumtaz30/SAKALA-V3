@@ -19,4 +19,7 @@ export interface AcademicYear {
   endDate: string | null;
   lifecycle: AcademicYearLifecycle;
   isWorkspaceSelected: boolean;
+  /** Bagian D.1 — batas JP mengajar berturut-turut per guru per hari.
+   *  null = tidak dibatasi. */
+  maxConsecutiveJp: number | null;
 }

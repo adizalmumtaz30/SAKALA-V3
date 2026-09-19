@@ -12,6 +12,7 @@ import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assig
 import { listRooms } from "@/lib/data-access/room";
 import { listTimeStructureForYear } from "@/lib/data-access/time-structure";
 import { recordHistory } from "@/lib/data-access/history";
+import { getAcademicYearById } from "@/lib/data-access/academic-year";
 import { findConflicts } from "@/lib/application/schedule-conflict";
 import { DAY_LABEL, type Day } from "@/lib/domain/time-structure";
 
@@ -53,11 +54,12 @@ export async function assignScheduleAction(
 
   const supabase = await createClient();
 
-  const [assignments, entries, rooms, slots] = await Promise.all([
+  const [assignments, entries, rooms, slots, academicYear] = await Promise.all([
     listTeachingAssignmentsForYear(supabase, academicYearId),
     listScheduleEntriesForYear(supabase, academicYearId),
     listRooms(supabase),
     listTimeStructureForYear(supabase, academicYearId),
+    getAcademicYearById(supabase, academicYearId),
   ]);
 
   const assignment = assignments.find((a) => a.id === teachingAssignmentId);
@@ -76,6 +78,7 @@ export async function assignScheduleAction(
   }
 
   const room = rooms.find((r) => r.id === roomId);
+  const maxConsecutiveJp = academicYear?.maxConsecutiveJp ?? null;
 
   const conflicts = findConflicts(
     {
@@ -89,6 +92,7 @@ export async function assignScheduleAction(
       roomName: room?.name ?? null,
     },
     entries,
+    maxConsecutiveJp,
   );
 
   if (conflicts.length > 0) {
@@ -167,9 +171,10 @@ export async function moveScheduleEntryAction(
   }
 
   const supabase = await createClient();
-  const [entries, slots] = await Promise.all([
+  const [entries, slots, academicYear] = await Promise.all([
     listScheduleEntriesForYear(supabase, academicYearId),
     listTimeStructureForYear(supabase, academicYearId),
+    getAcademicYearById(supabase, academicYearId),
   ]);
 
   const entry = entries.find((e) => e.id === id);
@@ -196,6 +201,7 @@ export async function moveScheduleEntryAction(
       ignoreEntryId: entry.id,
     },
     entries,
+    academicYear?.maxConsecutiveJp ?? null,
   );
 
   if (conflicts.length > 0) {

@@ -11,6 +11,7 @@ interface AcademicYearRow {
   end_date: string | null;
   lifecycle: "draft" | "active" | "archived";
   is_workspace_selected: boolean;
+  max_consecutive_jp: number | null;
 }
 
 function toDomain(row: AcademicYearRow): AcademicYear {
@@ -24,6 +25,7 @@ function toDomain(row: AcademicYearRow): AcademicYear {
     endDate: row.end_date,
     lifecycle: row.lifecycle,
     isWorkspaceSelected: row.is_workspace_selected,
+    maxConsecutiveJp: row.max_consecutive_jp,
   };
 }
 
@@ -37,6 +39,21 @@ export async function getWorkspaceAcademicYear(
     .eq("is_workspace_selected", true)
     .maybeSingle();
 
+  if (error) throw error;
+  return data ? toDomain(data as AcademicYearRow) : null;
+}
+
+/** Bagian D.1 — dipakai server action Schedule Engine untuk membaca aturan
+ *  (max_consecutive_jp) tanpa perlu tahu school_id-nya. */
+export async function getAcademicYearById(
+  supabase: SupabaseClient,
+  id: string,
+): Promise<AcademicYear | null> {
+  const { data, error } = await supabase
+    .from("academic_year")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
   if (error) throw error;
   return data ? toDomain(data as AcademicYearRow) : null;
 }
@@ -97,5 +114,18 @@ export async function createDraftAcademicYear(
     lifecycle: "draft",
     is_workspace_selected: false,
   });
+  if (error) throw error;
+}
+
+/** Bagian D.1 — "Pengaturan Jadwal > Aturan": ubah batas JP berturut-turut. */
+export async function updateMaxConsecutiveJp(
+  supabase: SupabaseClient,
+  academicYearId: string,
+  maxConsecutiveJp: number | null,
+): Promise<void> {
+  const { error } = await supabase
+    .from("academic_year")
+    .update({ max_consecutive_jp: maxConsecutiveJp })
+    .eq("id", academicYearId);
   if (error) throw error;
 }
