@@ -182,7 +182,11 @@ export function EntityRow({
         )}
       </div>
 
-      {trailing && (\n        <div className="shrink-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">\n          {trailing}\n        </div>\n      )}
+      {trailing && (
+        <div className="shrink-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+          {trailing}
+        </div>
+      )}
 
       {!editing && (
         <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
