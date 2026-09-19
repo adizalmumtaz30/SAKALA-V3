@@ -87,7 +87,7 @@ export function SlotEditor({
     () => progress.find((p) => p.teachingAssignmentId === selectedAssignmentId) ?? null,
     [progress, selectedAssignmentId],
   );
-  const maxSelectableJp = Math.min(3, Math.max(1, selectedProgress?.remainingJp ?? 3));
+  const maxSelectableJp = Math.min(3, Math.max(0, selectedProgress?.remainingJp ?? 3));
 
   const options = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -323,7 +323,7 @@ export function SlotEditor({
                     id="jp-count"
                     name="jpCount"
                     defaultValue="1"
-                    disabled={!selectedAssignmentId}
+                    disabled={!selectedAssignmentId || maxSelectableJp === 0}
                     className="w-full rounded-lg border border-hairline-strong bg-surface px-3 py-2 text-[12.5px] text-ink outline-none focus:border-accent-teal disabled:opacity-50"
                   >
                     {Array.from({ length: maxSelectableJp }, (_, index) => index + 1).map(
