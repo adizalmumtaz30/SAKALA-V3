@@ -14,6 +14,7 @@ import { Copy } from "lucide-react";
 import { getIdentityColor } from "@/lib/domain/identity-color";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { DeleteBebanMengajarButton } from "@/components/master-data/DeleteBebanMengajarButton";
 
 export default async function BebanMengajarPage() {
   const supabase = await createClient();
@@ -142,6 +143,13 @@ export default async function BebanMengajarPage() {
                         id={a.id}
                         toggleAction={toggleBebanMengajarStatusAction}
                         accentColor={getIdentityColor(a.subjectColorKey)?.accent}
+                        trailing={
+                          <DeleteBebanMengajarButton
+                            id={a.id}
+                            label={`${a.subjectName} — ${a.className}`}
+                            meta={`${a.targetJp} JP/minggu`}
+                          />
+                        }
                         expandable={{
                           icon: <Copy size={14} strokeWidth={1.75} />,
                           label: "Duplikat ke kelas lain",

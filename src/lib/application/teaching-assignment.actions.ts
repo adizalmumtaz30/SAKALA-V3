@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createTeachingAssignmentsBulk } from "@/lib/data-access/teaching-assignment";
+import { createTeachingAssignmentsBulk, listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
 import { recordHistory } from "@/lib/data-access/history";
 import { createBebanMengajarSchema } from "@/lib/validation/teaching-assignment.schema";
 
@@ -58,6 +58,44 @@ export async function createBebanMengajarAction(
   return { success: `${inserted} beban mengajar ditambahkan` };
 }
 
+
+export async function deleteBebanMengajarAction(formData: FormData) {
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return { error: "Beban mengajar tidak ditemukan." };
+
+  const supabase = await createClient();
+  const { data: assignmentRow, error: fetchError } = await supabase
+    .from("teaching_assignment")
+    .select("academic_year_id")
+    .eq("id", id)
+    .single();
+
+  if (fetchError || !assignmentRow) return { error: "Beban mengajar tidak ditemukan." };
+
+  const assignments = await listTeachingAssignmentsForYear(supabase, assignmentRow.academic_year_id);
+  const assignment = assignments.find((item) => item.id === id);
+  if (!assignment) return { error: "Beban mengajar tidak ditemukan." };
+
+  const { error } = await supabase
+    .from("teaching_assignment")
+    .delete()
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+
+  await recordHistory(supabase, {
+    academicYearId: assignment.academicYearId,
+    entityType: "beban_mengajar",
+    entityId: id,
+    action: "delete",
+    summary: `Beban mengajar ${assignment.teacherName} — ${assignment.subjectName} — ${assignment.className} (${assignment.targetJp} JP/minggu) dihapus`,
+  });
+
+  revalidatePath("/beban-mengajar");
+  revalidatePath("/jadwal");
+  revalidatePath("/");
+  return { success: "Beban mengajar dihapus." };
+}
 export async function toggleBebanMengajarStatusAction(formData: FormData) {
   const id = String(formData.get("id"));
   const currentStatus = String(formData.get("status"));
