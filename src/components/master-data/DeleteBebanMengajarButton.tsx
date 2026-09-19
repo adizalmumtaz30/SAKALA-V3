@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { deleteBebanMengajarAction } from "@/lib/application/teaching-assignment.actions";
 
 interface DeleteBebanMengajarButtonProps {
   id: string;
@@ -28,12 +29,7 @@ export function DeleteBebanMengajarButton({
       const formData = new FormData();
       formData.set("id", id);
 
-      const response = await fetch("/api/beban-mengajar/delete", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result = (await response.json()) as { error?: string; success?: string };
+      const result = await deleteBebanMengajarAction(formData);
 
       if (result.error) {
         show({ message: result.error, tone: "warning" });
@@ -46,7 +42,7 @@ export function DeleteBebanMengajarButton({
   }
 
   const impactLines = [
-    `${label} — ${meta} akan dihapus permanen dari Beban Mengajar.`
+    `${label} — ${meta} akan dihapus permanen dari Beban Mengajar.`,
     ...(hasScheduleEntries ? ["Jadwal yang memakai beban ini juga akan ikut terhapus."] : []),
     "Tindakan ini tidak dapat di-undo.",
   ];
