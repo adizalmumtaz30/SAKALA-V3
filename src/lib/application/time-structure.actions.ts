@@ -8,6 +8,7 @@ import {
   updateTimeSlotDuration,
   recomputeDayChain,
   getSlotContext,
+  appendTimeSlot,
 } from "@/lib/data-access/time-structure";
 import { recordHistory } from "@/lib/data-access/history";
 import type { Day, TimeSlotType } from "@/lib/domain/time-structure";
@@ -115,4 +116,40 @@ export async function updateSlotDurationAction(formData: FormData) {
 
   revalidatePath("/jadwal/struktur-waktu");
   revalidatePath("/jadwal");
+}
+
+/** Bagian Jadwal #1 — tambah satu jam ke- baru di akhir hari tertentu. */
+export async function appendTimeSlotAction(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const academicYearId = String(formData.get("academicYearId") ?? "");
+  const day = String(formData.get("day") ?? "") as Day;
+  const durationMinutes = Number(formData.get("durationMinutes") ?? 40);
+
+  if (!academicYearId || !day) return { error: "Data tidak lengkap." };
+  if (!Number.isInteger(durationMinutes) || durationMinutes <= 0) {
+    return { error: "Durasi harus angka bulat lebih dari 0." };
+  }
+
+  try {
+    const supabase = await createClient();
+    const { periodNumber } = await appendTimeSlot(supabase, {
+      academicYearId,
+      day,
+      durationMinutes,
+    });
+    await recordHistory(supabase, {
+      academicYearId,
+      entityType: "struktur_waktu",
+      entityId: null,
+      action: "create",
+      summary: `Jam ke-${periodNumber} ditambahkan di hari ${day}`,
+    });
+    revalidatePath("/jadwal/struktur-waktu");
+    revalidatePath("/jadwal");
+    return { success: `Jam ke-${periodNumber} ditambahkan.` };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Gagal menambah jam." };
+  }
 }

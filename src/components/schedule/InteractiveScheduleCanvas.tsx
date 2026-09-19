@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import type { TimeSlot, Day } from "@/lib/domain/time-structure";
 import { DAYS, DAY_LABEL } from "@/lib/domain/time-structure";
 import type { ScheduleEntry, JpProgress } from "@/lib/domain/schedule";
-import { getIdentityColor } from "@/lib/domain/identity-color";
+import { getIdentityColor, withAlpha } from "@/lib/domain/identity-color";
 import { SlotEditor } from "@/components/schedule/SlotEditor";
 
 function formatTime(t: string) {
@@ -161,12 +161,26 @@ export function InteractiveScheduleCanvas({
                                 }`}
                                 style={{
                                   borderColor: color?.accent ?? undefined,
-                                  backgroundColor: color?.tintDark ?? undefined,
-                                  borderLeftWidth: 3,
+                                  // §Solusi "warna kurang nampak" — tint dasar
+                                  // (tintDark) sengaja sangat lembut untuk
+                                  // konteks lain (badge/swatch), tapi di sel
+                                  // grid yang padat itu jadi nyaris tak
+                                  // terlihat. withAlpha() menurunkan varian
+                                  // lebih tegas dari basis rgb YANG SAMA
+                                  // (bukan warna baru) — tetap tint, bukan
+                                  // fill solid, jadi prinsip readability
+                                  // tidak dilanggar.
+                                  backgroundColor: color ? withAlpha(color.tintDark, 0.26) : undefined,
+                                  borderLeftWidth: 5,
                                 }}
                               >
-                                <p className="truncate text-[11.5px] font-medium text-ink">
-                                  {e.subjectName}
+                                <p className="flex items-center gap-1.5 truncate text-[11.5px] font-medium text-ink">
+                                  <span
+                                    aria-hidden
+                                    className="h-1.5 w-1.5 shrink-0 rounded-full"
+                                    style={{ backgroundColor: color?.accent ?? undefined }}
+                                  />
+                                  <span className="truncate">{e.subjectName}</span>
                                 </p>
                                 <p className="truncate text-[10.5px] text-ink-muted">
                                   {e.className} · {e.teacherName}

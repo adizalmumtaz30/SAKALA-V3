@@ -52,6 +52,22 @@ export const IDENTITY_COLORS: IdentityColor[] = [
 
 const BY_KEY = new Map(IDENTITY_COLORS.map((c) => [c.key, c]));
 
+/**
+ * Menurunkan varian opasitas lain dari rgba() yang sudah ada, TANPA
+ * menambah field baru per warna (hindari 22 baris rawan salah ketik).
+ * Dipakai untuk sel Kanvas Jadwal, yang butuh tint sedikit lebih tegas
+ * daripada badge/swatch kecil supaya identitas warna benar-benar
+ * "nampak" — tetap tint (bukan fill solid), jadi prinsip readability-
+ * di-atas-segalanya (aturan #5 di atas) tidak dilanggar, cuma alpha-nya
+ * dinaikkan dari basis yang sama.
+ */
+export function withAlpha(rgba: string, alpha: number): string {
+  const match = rgba.match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)/);
+  if (!match) return rgba;
+  const [, r, g, b] = match;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export function getIdentityColor(key: string | null | undefined): IdentityColor | null {
   if (!key) return null;
   return BY_KEY.get(key) ?? null;
