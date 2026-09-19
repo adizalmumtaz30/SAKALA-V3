@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import {
   listScheduleEntriesForYear,
-  createScheduleEntry,
+  createScheduleEntries,
   deleteScheduleEntry,
   moveScheduleEntry,
 } from "@/lib/data-access/schedule";
@@ -47,9 +47,14 @@ export async function assignScheduleAction(
   const teachingAssignmentId = String(formData.get("teachingAssignmentId") ?? "");
   const roomIdRaw = String(formData.get("roomId") ?? "");
   const roomId = roomIdRaw === "" ? null : roomIdRaw;
+  const requestedJp = Number(formData.get("jpCount") ?? 1);
 
   if (!academicYearId || !timeSlotId || !teachingAssignmentId) {
     return { error: "Data belum lengkap — pilih mata pelajaran dulu." };
+  }
+
+  if (!Number.isInteger(requestedJp) || requestedJp < 1 || requestedJp > 3) {
+    return { error: "Jumlah JP harus 1, 2, atau 3." };
   }
 
   const supabase = await createClient();
@@ -67,51 +72,143 @@ export async function assignScheduleAction(
     return { error: "Beban mengajar tidak ditemukan." };
   }
 
-  const slot = slots.find((s) => s.id === timeSlotId);
-  if (!slot) {
+  const scheduledJp = entries.filter(
+    (entry) => entry.teachingAssignmentId === teachingAssignmentId,
+  ).length;
+  const remainingJp = assignment.targetJp - scheduledJp;
+
+  if (remainingJp <= 0) {
+    return { error: "Target JP untuk beban mengajar ini sudah terpenuhi." };
+  }
+
+  if (requestedJp > remainingJp) {
+    return {
+      error: "Sisa JP " + remainingJp + ". Jumlah JP yang ditambahkan tidak boleh melebihi sisa JP.",
+    };
+  }
+
+  const startSlot = slots.find((s) => s.id === timeSlotId);
+  if (!startSlot) {
     return { error: "Jam pelajaran tidak ditemukan." };
   }
-  if (slot.type !== "mengajar") {
+  if (startSlot.type !== "mengajar") {
     return {
-      error: `Jam ke-${slot.periodNumber} ${DAY_LABEL[slot.day as Day]} bukan jam mengajar, jadi tidak bisa diisi pelajaran.`,
+      error:
+        "Jam ke-" +
+        startSlot.periodNumber +
+        " " +
+        DAY_LABEL[startSlot.day as Day] +
+        " bukan jam mengajar, jadi tidak bisa diisi pelajaran.",
+    };
+  }
+
+  const targetSlots = Array.from({ length: requestedJp }, (_, index) =>
+    slots.find(
+      (s) =>
+        s.day === startSlot.day &&
+        s.periodNumber === startSlot.periodNumber + index,
+    ),
+  );
+
+  if (targetSlots.some((slot) => !slot)) {
+    return {
+      error:
+        "Tidak ada " +
+        requestedJp +
+        " jam mengajar berurutan mulai jam ke-" +
+        startSlot.periodNumber +
+        " " +
+        DAY_LABEL[startSlot.day as Day] +
+        ".",
+    };
+  }
+
+  const consecutiveSlots =
+    targetSlots as NonNullable<(typeof targetSlots)[number]>[];
+  const invalidSlot = consecutiveSlots.find((slot) => slot.type !== "mengajar");
+  if (invalidSlot) {
+    return {
+      error:
+        "Jam ke-" +
+        invalidSlot.periodNumber +
+        " " +
+        DAY_LABEL[invalidSlot.day as Day] +
+        " bukan jam mengajar, jadi " +
+        requestedJp +
+        " JP berurutan tidak bisa ditempatkan di sini.",
     };
   }
 
   const room = rooms.find((r) => r.id === roomId);
   const maxConsecutiveJp = academicYear?.maxConsecutiveJp ?? null;
 
-  const conflicts = findConflicts(
-    {
-      day: slot.day,
-      periodNumber: slot.periodNumber,
-      teacherId: assignment.teacherId,
-      teacherName: assignment.teacherName,
-      classId: assignment.classId,
-      className: assignment.className,
-      roomId,
-      roomName: room?.name ?? null,
-    },
-    entries,
-    maxConsecutiveJp,
-  );
-
-  if (conflicts.length > 0) {
-    return { conflicts: conflicts.map((c) => c.message) };
-  }
-
-  const result = await createScheduleEntry(supabase, {
+  // Sertakan slot yang sedang akan ditambahkan saat mengecek batas JP
+  // berturut-turut, supaya 1+3 JP tidak lolos ketika batasnya 3.
+  const pendingEntries = consecutiveSlots.map((slot) => ({
+    id: "pending-" + slot.id,
     academicYearId,
     teachingAssignmentId,
+    roomId,
     teacherId: assignment.teacherId,
     subjectId: assignment.subjectId,
     classId: assignment.classId,
     day: slot.day,
     periodNumber: slot.periodNumber,
-    roomId,
-  });
+    source: "manual" as const,
+    locked: true,
+    teacherName: assignment.teacherName,
+    subjectName: assignment.subjectName,
+    subjectColorKey: assignment.subjectColorKey,
+    className: assignment.className,
+    roomName: room?.name ?? null,
+  }));
+
+  const validationEntries = entries.concat(pendingEntries);
+
+  const allConflicts = consecutiveSlots.flatMap((slot) =>
+    findConflicts(
+      {
+        day: slot.day,
+        periodNumber: slot.periodNumber,
+        teacherId: assignment.teacherId,
+        teacherName: assignment.teacherName,
+        classId: assignment.classId,
+        className: assignment.className,
+        roomId,
+        roomName: room?.name ?? null,
+      },
+      validationEntries.filter((entry) => entry.id !== "pending-" + slot.id),
+      maxConsecutiveJp,
+    ).map(
+      (conflict) =>
+        "Jam ke-" + slot.periodNumber + ": " + conflict.message,
+    ),
+  );
+
+  if (allConflicts.length > 0) {
+    return { conflicts: allConflicts };
+  }
+
+  const result = await createScheduleEntries(
+    supabase,
+    consecutiveSlots.map((slot) => ({
+      academicYearId,
+      teachingAssignmentId,
+      teacherId: assignment.teacherId,
+      subjectId: assignment.subjectId,
+      classId: assignment.classId,
+      day: slot.day,
+      periodNumber: slot.periodNumber,
+      roomId,
+    })),
+  );
 
   if (!result.ok) {
-    return { conflicts: [CLASH_MESSAGE[result.clash === "unknown" ? "duplicate" : result.clash]] };
+    return {
+      conflicts: [
+        CLASH_MESSAGE[result.clash === "unknown" ? "duplicate" : result.clash],
+      ],
+    };
   }
 
   await recordHistory(supabase, {
@@ -119,12 +216,36 @@ export async function assignScheduleAction(
     entityType: "schedule_entry",
     entityId: null,
     action: "create",
-    summary: `${assignment.subjectName} (${assignment.teacherName}) ditempatkan di ${assignment.className} — ${DAY_LABEL[slot.day as Day]} jam ke-${slot.periodNumber}`,
+    summary:
+      assignment.subjectName +
+      " (" +
+      assignment.teacherName +
+      ") ditempatkan di " +
+      assignment.className +
+      " — " +
+      DAY_LABEL[startSlot.day as Day] +
+      " jam ke-" +
+      startSlot.periodNumber +
+      " s.d. " +
+      (startSlot.periodNumber + requestedJp - 1) +
+      " (" +
+      requestedJp +
+      " JP)",
   });
 
   revalidatePath("/jadwal");
   return {
-    success: `${assignment.subjectName} masuk ke ${DAY_LABEL[slot.day as Day]} jam ke-${slot.periodNumber}.`,
+    success:
+      assignment.subjectName +
+      " masuk ke " +
+      DAY_LABEL[startSlot.day as Day] +
+      " jam ke-" +
+      startSlot.periodNumber +
+      " s.d. " +
+      (startSlot.periodNumber + requestedJp - 1) +
+      " (" +
+      requestedJp +
+      " JP).",
   };
 }
 

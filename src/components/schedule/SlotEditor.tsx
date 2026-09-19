@@ -74,6 +74,7 @@ export function SlotEditor({
   );
   const [movingId, setMovingId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
 
   // Kelas yang sudah terisi di jam ini ditandai tidak bisa dipilih —
   // mencegah operator memilih sesuatu yang pasti ditolak conflict engine.
@@ -81,6 +82,12 @@ export function SlotEditor({
     () => new Set(entries.map((e) => e.className)),
     [entries],
   );
+
+  const selectedProgress = useMemo(
+    () => progress.find((p) => p.teachingAssignmentId === selectedAssignmentId) ?? null,
+    [progress, selectedAssignmentId],
+  );
+  const maxSelectableJp = Math.min(3, Math.max(0, selectedProgress?.remainingJp ?? 3));
 
   const options = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -272,6 +279,8 @@ export function SlotEditor({
                           type="radio"
                           name="teachingAssignmentId"
                           value={p.teachingAssignmentId}
+                          checked={selectedAssignmentId === p.teachingAssignmentId}
+                          onChange={() => setSelectedAssignmentId(p.teachingAssignmentId)}
                           disabled={disabled}
                           required
                           className="accent-accent-teal"
@@ -301,6 +310,33 @@ export function SlotEditor({
                       </label>
                     );
                   })}
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="jp-count"
+                    className="mb-1.5 block text-[11px] text-ink-muted"
+                  >
+                    Tambah berapa JP sekaligus
+                  </label>
+                  <select
+                    id="jp-count"
+                    name="jpCount"
+                    defaultValue="1"
+                    disabled={!selectedAssignmentId || maxSelectableJp === 0}
+                    className="w-full rounded-lg border border-hairline-strong bg-surface px-3 py-2 text-[12.5px] text-ink outline-none focus:border-accent-teal disabled:opacity-50"
+                  >
+                    {Array.from({ length: maxSelectableJp }, (_, index) => index + 1).map(
+                      (jp) => (
+                        <option key={jp} value={jp}>
+                          {jp} JP {jp > 1 ? "— jam berurutan" : "— satu jam"}
+                        </option>
+                      ),
+                    )}
+                  </select>
+                  <p className="mt-1 text-[11px] text-ink-faint">
+                    Maksimal 3 JP sekali tambah. Jika sisa JP masih ada, beban mengajar tetap bisa dipilih lagi.
+                  </p>
                 </div>
 
                 {rooms.length > 0 && (
