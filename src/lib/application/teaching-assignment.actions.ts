@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createTeachingAssignmentsBulk } from "@/lib/data-access/teaching-assignment";
 import { recordHistory } from "@/lib/data-access/history";
+import { createBebanMengajarSchema } from "@/lib/validation/teaching-assignment.schema";
 
 export interface FormState {
   error?: string;
@@ -22,19 +23,19 @@ export async function createBebanMengajarAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const academicYearId = String(formData.get("academicYearId") ?? "");
-  const teacherId = String(formData.get("teacherId") ?? "");
-  const subjectId = String(formData.get("subjectId") ?? "");
-  const classIds = formData.getAll("classIds").map(String);
-  const targetJp = Number(formData.get("targetJp"));
+  const parsed = createBebanMengajarSchema.safeParse({
+    academicYearId: formData.get("academicYearId"),
+    teacherId: formData.get("teacherId"),
+    subjectId: formData.get("subjectId"),
+    classIds: formData.getAll("classIds"),
+    targetJp: formData.get("targetJp"),
+  });
 
-  if (!academicYearId) return { error: "Tahun ajaran belum aktif." };
-  if (!teacherId) return { error: "Pilih guru terlebih dahulu." };
-  if (!subjectId) return { error: "Pilih mata pelajaran terlebih dahulu." };
-  if (classIds.length === 0) return { error: "Pilih minimal satu kelas." };
-  if (!Number.isInteger(targetJp) || targetJp <= 0) {
-    return { error: "JP / minggu harus berupa angka lebih dari 0." };
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Data belum valid." };
   }
+
+  const { academicYearId, teacherId, subjectId, classIds, targetJp } = parsed.data;
 
   const supabase = await createClient();
   const { inserted } = await createTeachingAssignmentsBulk(supabase, {

@@ -25,6 +25,7 @@ import {
 } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { MegaMendung } from "@/components/shell/MegaMendung";
+import * as Tooltip from "@radix-ui/react-tooltip";
 
 interface NavItem {
   href: string;
@@ -88,15 +89,7 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");
 }
 
-function NavRow({
-  item,
-  active,
-  collapsed,
-}: {
-  item: NavItem;
-  active: boolean;
-  collapsed: boolean;
-}) {
+function NavRowLink({ item, active, collapsed }: { item: NavItem; active: boolean; collapsed: boolean }) {
   const Icon = item.icon;
   return (
     <Link
@@ -115,13 +108,48 @@ function NavRow({
       />
       <Icon size={17} strokeWidth={1.75} className="shrink-0" />
       {!collapsed && <span className="truncate">{item.label}</span>}
-
-      {collapsed && (
-        <span className="pointer-events-none absolute left-full ml-2 whitespace-nowrap rounded-md border border-hairline-strong bg-surface-overlay px-2.5 py-1.5 text-[12px] text-ink opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 z-50">
-          {item.label}
-        </span>
-      )}
     </Link>
+  );
+}
+
+/**
+ * Tooltip Radix (Bagian §1 UI_WORKFLOW.md) menggantikan tooltip custom lama
+ * yang cuma `opacity` CSS di hover — versi ini punya focus-visible,
+ * escape-to-dismiss, dan positioning yang otomatis menghindar tepi layar,
+ * gratis dari library yang sudah diuji jutaan pengguna, bukan ditulis ulang.
+ * Cuma dipasang saat collapsed — saat expanded label sudah kelihatan.
+ */
+function NavRow({
+  item,
+  active,
+  collapsed,
+}: {
+  item: NavItem;
+  active: boolean;
+  collapsed: boolean;
+}) {
+  if (!collapsed) {
+    return <NavRowLink item={item} active={active} collapsed={collapsed} />;
+  }
+
+  return (
+    <Tooltip.Root delayDuration={200}>
+      <Tooltip.Trigger asChild>
+        <span>
+          <NavRowLink item={item} active={active} collapsed={collapsed} />
+        </span>
+      </Tooltip.Trigger>
+      <Tooltip.Portal>
+        <Tooltip.Content
+          side="right"
+          sideOffset={10}
+          className="z-50 rounded-md border border-hairline-strong bg-surface-overlay px-2.5 py-1.5 text-[12px] text-ink shadow-lg [animation:drawer-fade-in_120ms_ease-out]"
+        >
+          {item.label}
+          <Tooltip.Arrow className="fill-surface-overlay" />
+        </Tooltip.Content>
+      </Tooltip.Portal>
+    </Tooltip.Root>
   );
 }
 
@@ -140,6 +168,7 @@ export function Sidebar({ hasAttention }: { hasAttention?: boolean }) {
   const showJadwalSubmenu = !collapsed && pathname.startsWith("/jadwal");
 
   return (
+    <Tooltip.Provider delayDuration={200}>
     <aside
       className={cn(
         "relative flex h-dvh shrink-0 flex-col overflow-hidden border-r border-hairline bg-sidebar transition-[width] duration-200",
@@ -270,5 +299,6 @@ export function Sidebar({ hasAttention }: { hasAttention?: boolean }) {
         </button>
       </div>
     </aside>
+    </Tooltip.Provider>
   );
 }

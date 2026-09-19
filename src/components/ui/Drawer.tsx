@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { X } from "lucide-react";
 
 interface DrawerProps {
@@ -13,35 +14,62 @@ interface DrawerProps {
  * Context Drawer (Bagian 71-72, doc 3; 10.10.23-26, doc 6 — LOCKED pattern).
  * A click on an entity opens a panel beside the workspace, not a new page —
  * the surrounding context (list, filters, scroll position) is never lost.
+ *
+ * Animasi KELUAR (Motion/AnimatePresence): sebelum integrasi ini, Drawer
+ * langsung hilang instan saat ditutup karena CSS @keyframes cuma bisa
+ * animasi MASUK — begitu React unmount elemen, tidak ada waktu untuk
+ * animasi keluar berjalan. Di sini `open` dikelola secara internal: request
+ * tutup (Escape/backdrop/tombol X) memicu animasi keluar dulu via
+ * AnimatePresence, baru memanggil onClose (yang biasanya router.push
+ * menghapus query param) SETELAH animasi selesai lewat onExitComplete.
+ * Pola ini bekerja walau presence Drawer sendiri dikendalikan dari
+ * Server Component (URL-driven), karena state buka/tutup visualnya
+ * sepenuhnya milik komponen ini, bukan dari parent.
  */
 export function Drawer({ title, onClose, children }: DrawerProps) {
+  const [open, setOpen] = useState(true);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") setOpen(false);
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, []);
 
   return (
-    <div className="fixed inset-0 z-50">
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm [animation:drawer-fade-in_200ms_ease-out]"
-        onClick={onClose}
-      />
-      <div className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-hairline bg-surface-overlay/95 shadow-2xl backdrop-blur-xl [animation:drawer-slide-in_260ms_ease-out]">
-        <div className="flex shrink-0 items-center justify-between border-b border-hairline px-5 py-4">
-          <h2 className="text-[14px] font-medium text-ink">{title}</h2>
-          <button
-            onClick={onClose}
-            aria-label="Tutup"
-            className="text-ink-faint hover:text-ink"
+    <AnimatePresence onExitComplete={onClose}>
+      {open && (
+        <div className="fixed inset-0 z-50">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setOpen(false)}
+          />
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-hairline bg-surface-overlay/95 shadow-2xl backdrop-blur-xl"
           >
-            <X size={16} strokeWidth={1.75} />
-          </button>
+            <div className="flex shrink-0 items-center justify-between border-b border-hairline px-5 py-4">
+              <h2 className="text-[14px] font-medium text-ink">{title}</h2>
+              <button
+                onClick={() => setOpen(false)}
+                aria-label="Tutup"
+                className="text-ink-faint hover:text-ink"
+              >
+                <X size={16} strokeWidth={1.75} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-5">{children}</div>
+          </motion.div>
         </div>
-        <div className="flex-1 overflow-y-auto p-5">{children}</div>
-      </div>
-    </div>
+      )}
+    </AnimatePresence>
   );
 }
