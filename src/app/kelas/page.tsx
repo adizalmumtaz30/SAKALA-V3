@@ -5,7 +5,7 @@ import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
 import { listClassesForYear } from "@/lib/data-access/class";
 import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
 import { computeDeactivationWarnings } from "@/lib/application/diagnostics";
-import { toggleClassStatusAction, updateClassAction, bulkSetClassStatusAction } from "@/lib/application/master-data.actions";
+import { toggleClassStatusAction, updateClassAction, bulkActivateClassAction, bulkDeactivateClassAction } from "@/lib/application/master-data.actions";
 import { CreateClassForm } from "@/components/master-data/CreateClassForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
 import { SelectableEntityGrid } from "@/components/master-data/SelectableEntityGrid";
@@ -62,10 +62,10 @@ export default async function KelasPage() {
           /></div>
         ) : (
           <SelectableEntityGrid
-            items={classes}
-            bulkActivate={(ids) => bulkSetClassStatusAction(ids, "active")}
-            bulkDeactivate={(ids) => bulkSetClassStatusAction(ids, "inactive")}
-            renderRow={(schoolClass, selectable) => (
+            bulkActivate={bulkActivateClassAction}
+            bulkDeactivate={bulkDeactivateClassAction}
+          >
+            {classes.map((schoolClass) => (
               <EntityRow
                 key={schoolClass.id}
                 icon={<IconKelas size={15} strokeWidth={1.75} />}
@@ -78,10 +78,9 @@ export default async function KelasPage() {
                 viewScheduleHref={`/jadwal?view=kelas&entity=${schoolClass.id}`}
                 addScheduleHref={`/jadwal?view=kelas&entity=${schoolClass.id}`}
                 renameAction={updateClassAction}
-                selectable={selectable}
               />
-            )}
-          />
+            ))}
+          </SelectableEntityGrid>
         )}
       </div>
     </div>

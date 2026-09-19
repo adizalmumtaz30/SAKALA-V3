@@ -23,9 +23,13 @@ interface Props {
   entries: ScheduleEntry[];
   progress: JpProgress[];
   rooms: { id: string; name: string }[];
-  /** Saat melihat per kelas/guru/ruang, entri lain diredupkan bukan dibuang —
-   *  operator tetap sadar jam itu sebenarnya terpakai. */
-  focusFilter?: (entry: ScheduleEntry) => boolean;
+  /** §Bugfix runtime — sebelumnya `focusFilter` (function) dihitung di
+   *  Server Component (/jadwal) lalu dilempar ke sini. Next.js melarang
+   *  closure lintas batas Server->Client (cuma Server Action yang boleh),
+   *  errornya baru muncul di RUNTIME. Diganti dua nilai serializable
+   *  (string/null) — logika pencocokan dipindah ke sini, di sisi klien. */
+  focusView?: "sekolah" | "kelas" | "guru" | "mapel" | "ruang";
+  focusEntityId?: string | null;
 }
 
 export function InteractiveScheduleCanvas({
@@ -34,9 +38,21 @@ export function InteractiveScheduleCanvas({
   entries,
   progress,
   rooms,
-  focusFilter,
+  focusView,
+  focusEntityId,
 }: Props) {
   const [openSlotId, setOpenSlotId] = useState<string | null>(null);
+
+  // Saat melihat per kelas/guru/mapel/ruang, entri lain diredupkan bukan
+  // dibuang — operator tetap sadar jam itu sebenarnya terpakai. Dihitung
+  // di sini (klien), bukan diterima sebagai prop function dari server.
+  const focusFilter = useMemo(() => {
+    if (!focusView || focusView === "sekolah" || !focusEntityId) return undefined;
+    if (focusView === "kelas") return (e: ScheduleEntry) => e.classId === focusEntityId;
+    if (focusView === "guru") return (e: ScheduleEntry) => e.teacherId === focusEntityId;
+    if (focusView === "mapel") return (e: ScheduleEntry) => e.subjectId === focusEntityId;
+    return (e: ScheduleEntry) => e.roomId === focusEntityId;
+  }, [focusView, focusEntityId]);
 
   const activeSlots = useMemo(
     () => timeSlots.filter((s) => s.status === "active"),

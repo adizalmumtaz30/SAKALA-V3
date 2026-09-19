@@ -6,7 +6,7 @@ import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assig
 import { listAttendanceForTeacher } from "@/lib/data-access/attendance";
 import { listHistoryForEntity } from "@/lib/data-access/history";
 import { computeDeactivationWarnings } from "@/lib/application/diagnostics";
-import { createTeacherAction, toggleTeacherStatusAction, updateTeacherAction, bulkSetTeacherStatusAction } from "@/lib/application/master-data.actions";
+import { createTeacherAction, toggleTeacherStatusAction, updateTeacherAction, bulkActivateTeacherAction, bulkDeactivateTeacherAction } from "@/lib/application/master-data.actions";
 import { NameOnlyCreateForm } from "@/components/master-data/NameOnlyCreateForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -72,10 +72,10 @@ export default async function GuruPage({
           /></div>
         ) : (
           <SelectableEntityGrid
-            items={teachers}
-            bulkActivate={(ids) => bulkSetTeacherStatusAction(ids, "active")}
-            bulkDeactivate={(ids) => bulkSetTeacherStatusAction(ids, "inactive")}
-            renderRow={(teacher, selectable) => (
+            bulkActivate={bulkActivateTeacherAction}
+            bulkDeactivate={bulkDeactivateTeacherAction}
+          >
+            {teachers.map((teacher) => (
               <EntityRow
                 key={teacher.id}
                 icon={<IconGuru size={15} strokeWidth={1.75} />}
@@ -88,10 +88,9 @@ export default async function GuruPage({
                 viewScheduleHref={`/jadwal?view=guru&entity=${teacher.id}`}
                 addScheduleHref={`/jadwal?view=guru&entity=${teacher.id}`}
                 renameAction={updateTeacherAction}
-                selectable={selectable}
               />
-            )}
-          />
+            ))}
+          </SelectableEntityGrid>
         )}
       </div>
 

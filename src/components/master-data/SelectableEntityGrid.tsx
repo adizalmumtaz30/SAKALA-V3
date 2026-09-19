@@ -1,29 +1,50 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
+import { type ReactNode, createContext, useContext, useState } from "react";
 import { BulkActionBar } from "@/components/master-data/BulkActionBar";
 import type { BulkResult } from "@/lib/application/master-data.actions";
 
-interface Item {
-  id: string;
+interface SelectionValue {
+  isSelected: (id: string) => boolean;
+  toggle: (id: string) => void;
+}
+
+const SelectionContext = createContext<SelectionValue | null>(null);
+
+/**
+ * Dipakai oleh EntityRow untuk tahu apakah dirinya sedang di dalam grid
+ * yang punya seleksi massal aktif. `undefined` (di luar provider) berarti
+ * halaman ini belum ikut fitur bulk -- EntityRow tidak menampilkan
+ * checkbox sama sekali, bukan error.
+ */
+export function useEntitySelection(id: string) {
+  const ctx = useContext(SelectionContext);
+  if (!ctx) return undefined;
+  return { checked: ctx.isSelected(id), onToggle: () => ctx.toggle(id) };
 }
 
 /**
- * Bagian VI.4 — dipakai di keempat halaman Master Data (Guru/Mapel/Kelas/
- * Ruang) supaya logika seleksi tidak ditulis ulang 4 kali. Halaman tetap
- * server component untuk pengambilan data; hanya bagian yang butuh state
- * klien (checkbox + bilah aksi) yang dibungkus di sini.
+ * §Bugfix runtime (Bagian VI.4) — versi SEBELUMNYA menerima prop `renderRow`
+ * (function) dari Server Component pemanggil. Next.js MELARANG lewatkan
+ * closure biasa lintas batas Server->Client -- cuma referensi Server
+ * Action ber-"use server" yang boleh. Errornya baru muncul di RUNTIME
+ * ("Functions cannot be passed directly to Client Components"), lolos
+ * total dari tsc & eslint karena ini aturan RSC, bukan aturan tipe.
+ *
+ * Fix: <EntityRow> dikirim sebagai CHILDREN (JSX yang sudah dirender
+ * Server Component pemanggil -- itu SAH lintas batas, beda dengan
+ * function belum-dipanggil). Status pilih/centang diteruskan lewat
+ * Context, dibaca EntityRow sendiri lewat useEntitySelection(id) --
+ * bukan lagi lewat prop yang harus dihitung di server.
  */
-export function SelectableEntityGrid<T extends Item>({
-  items,
+export function SelectableEntityGrid({
+  children,
   bulkActivate,
   bulkDeactivate,
-  renderRow,
 }: {
-  items: T[];
+  children: ReactNode;
   bulkActivate: (ids: string[]) => Promise<BulkResult>;
   bulkDeactivate: (ids: string[]) => Promise<BulkResult>;
-  renderRow: (item: T, selectable: { checked: boolean; onToggle: () => void }) => ReactNode;
 }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -37,21 +58,16 @@ export function SelectableEntityGrid<T extends Item>({
   };
 
   return (
-    <>
+    <SelectionContext.Provider
+      value={{ isSelected: (id) => selected.has(id), toggle }}
+    >
       <BulkActionBar
         selectedIds={Array.from(selected)}
         onClear={() => setSelected(new Set())}
         onActivate={bulkActivate}
         onDeactivate={bulkDeactivate}
       />
-      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-        {items.map((item) =>
-          renderRow(item, {
-            checked: selected.has(item.id),
-            onToggle: () => toggle(item.id),
-          }),
-        )}
-      </div>
-    </>
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+    </SelectionContext.Provider>
   );
 }

@@ -1,7 +1,7 @@
 import { IconRuang } from "@/components/icons";
 import { createClient } from "@/lib/supabase/server";
 import { listRooms } from "@/lib/data-access/room";
-import { createRoomAction, toggleRoomStatusAction, updateRoomAction, bulkSetRoomStatusAction } from "@/lib/application/master-data.actions";
+import { createRoomAction, toggleRoomStatusAction, updateRoomAction, bulkActivateRoomAction, bulkDeactivateRoomAction } from "@/lib/application/master-data.actions";
 import { NameOnlyCreateForm } from "@/components/master-data/NameOnlyCreateForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
 import { SelectableEntityGrid } from "@/components/master-data/SelectableEntityGrid";
@@ -36,10 +36,10 @@ export default async function RuangPage() {
           /></div>
         ) : (
           <SelectableEntityGrid
-            items={rooms}
-            bulkActivate={(ids) => bulkSetRoomStatusAction(ids, "active")}
-            bulkDeactivate={(ids) => bulkSetRoomStatusAction(ids, "inactive")}
-            renderRow={(room, selectable) => (
+            bulkActivate={bulkActivateRoomAction}
+            bulkDeactivate={bulkDeactivateRoomAction}
+          >
+            {rooms.map((room) => (
               <EntityRow
                 key={room.id}
                 icon={<IconRuang size={15} strokeWidth={1.75} />}
@@ -49,10 +49,9 @@ export default async function RuangPage() {
                 toggleAction={toggleRoomStatusAction}
                 viewScheduleHref={`/jadwal?view=ruang&entity=${room.id}`}
                 renameAction={updateRoomAction}
-                selectable={selectable}
               />
-            )}
-          />
+            ))}
+          </SelectableEntityGrid>
         )}
       </div>
     </div>

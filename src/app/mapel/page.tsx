@@ -6,7 +6,7 @@ import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assig
 import { computeDeactivationWarnings } from "@/lib/application/diagnostics";
 import { ColorPicker } from "@/components/master-data/ColorPicker";
 import { getIdentityColor } from "@/lib/domain/identity-color";
-import { createSubjectAction, toggleSubjectStatusAction, updateSubjectAction, bulkSetSubjectStatusAction } from "@/lib/application/master-data.actions";
+import { createSubjectAction, toggleSubjectStatusAction, updateSubjectAction, bulkActivateSubjectAction, bulkDeactivateSubjectAction } from "@/lib/application/master-data.actions";
 import { NameOnlyCreateForm } from "@/components/master-data/NameOnlyCreateForm";
 import { EntityRow } from "@/components/master-data/EntityRow";
 import { SelectableEntityGrid } from "@/components/master-data/SelectableEntityGrid";
@@ -48,10 +48,10 @@ export default async function MapelPage() {
           /></div>
         ) : (
           <SelectableEntityGrid
-            items={subjects}
-            bulkActivate={(ids) => bulkSetSubjectStatusAction(ids, "active")}
-            bulkDeactivate={(ids) => bulkSetSubjectStatusAction(ids, "inactive")}
-            renderRow={(subject, selectable) => (
+            bulkActivate={bulkActivateSubjectAction}
+            bulkDeactivate={bulkDeactivateSubjectAction}
+          >
+            {subjects.map((subject) => (
               <EntityRow
                 key={subject.id}
                 icon={<IconMapel size={15} strokeWidth={1.75} />}
@@ -63,7 +63,6 @@ export default async function MapelPage() {
                 accentColor={getIdentityColor(subject.colorKey)?.accent}
                 viewScheduleHref={`/jadwal?view=mapel&entity=${subject.id}`}
                 renameAction={updateSubjectAction}
-                selectable={selectable}
                 trailing={
                   <ColorPicker
                     subjectId={subject.id}
@@ -73,8 +72,8 @@ export default async function MapelPage() {
                   />
                 }
               />
-            )}
-          />
+            ))}
+          </SelectableEntityGrid>
         )}
       </div>
     </div>
