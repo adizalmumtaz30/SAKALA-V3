@@ -10,6 +10,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   Clock,
+  SlidersHorizontal,
 } from "lucide-react";
 import {
   IconGuru,
@@ -54,6 +55,7 @@ const OPERATIONAL_ITEMS: NavItem[] = [
 const JADWAL_SUBMENU: NavItem[] = [
   { href: "/jadwal", label: "Kanvas Jadwal", icon: IconJadwal },
   { href: "/jadwal/struktur-waktu", label: "Struktur Waktu", icon: Clock },
+  { href: "/jadwal/aturan", label: "Aturan", icon: SlidersHorizontal },
 ];
 
 const COLLAPSE_STORAGE_KEY = "sakala:sidebar-collapsed";

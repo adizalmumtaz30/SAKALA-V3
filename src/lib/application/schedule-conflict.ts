@@ -42,9 +42,36 @@ interface Candidate {
   ignoreEntryId?: string;
 }
 
+/**
+ * Bagian D.1 ("Pengaturan Jadwal > Aturan") — batas JP mengajar
+ * berturut-turut per guru per hari. Dihitung sebagai panjang rentetan jam
+ * mengajar TERSAMBUNG (period number berurutan tanpa celah) milik guru
+ * yang sama pada hari yang sama, TERMASUK slot kandidat. null/0 = tidak
+ * dibatasi.
+ */
+function consecutiveRunLength(
+  candidatePeriod: number,
+  sameTeacherSameDayPeriods: number[],
+): number {
+  const periods = new Set([...sameTeacherSameDayPeriods, candidatePeriod]);
+  let run = 1;
+  let p = candidatePeriod - 1;
+  while (periods.has(p)) {
+    run += 1;
+    p -= 1;
+  }
+  p = candidatePeriod + 1;
+  while (periods.has(p)) {
+    run += 1;
+    p += 1;
+  }
+  return run;
+}
+
 export function findConflicts(
   candidate: Candidate,
   existing: ScheduleEntry[],
+  maxConsecutiveJp?: number | null,
 ): Conflict[] {
   const sameSlot = existing.filter(
     (e) =>
@@ -80,6 +107,24 @@ export function findConflicts(
           /\s+/g,
           " ",
         ),
+      });
+    }
+  }
+
+  if (maxConsecutiveJp && maxConsecutiveJp > 0) {
+    const sameTeacherSameDayPeriods = existing
+      .filter(
+        (e) =>
+          e.day === candidate.day &&
+          e.teacherId === candidate.teacherId &&
+          e.id !== candidate.ignoreEntryId,
+      )
+      .map((e) => e.periodNumber);
+    const run = consecutiveRunLength(candidate.periodNumber, sameTeacherSameDayPeriods);
+    if (run > maxConsecutiveJp) {
+      conflicts.push({
+        kind: "guru",
+        message: `${candidate.teacherName} sudah mengajar ${run} JP berturut-turut hari ini — batasnya ${maxConsecutiveJp} JP. Beri jeda dulu.`,
       });
     }
   }

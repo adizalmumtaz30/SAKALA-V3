@@ -17,7 +17,7 @@ import { PerspectiveTabs } from "@/components/schedule/PerspectiveTabs";
 import { EntitySelect } from "@/components/schedule/EntitySelect";
 import { PrintButton } from "@/components/ui/PrintButton";
 
-type View = "sekolah" | "kelas" | "guru" | "mapel" | "ruang";
+type View = "kelas" | "guru" | "mapel" | "ruang";
 
 export default async function JadwalPage({
   searchParams,
@@ -27,7 +27,7 @@ export default async function JadwalPage({
   const { view: rawView, entity } = await searchParams;
   const view: View = (["kelas", "guru", "mapel", "ruang"].includes(rawView ?? "")
     ? rawView
-    : "sekolah") as View;
+    : "kelas") as View;
 
   const supabase = await createClient();
   const academicYear = await getWorkspaceAcademicYear(supabase);
@@ -72,7 +72,6 @@ export default async function JadwalPage({
   }
 
   let entityOptions: { id: string; name: string }[] = [];
-  let contextLabel = "Sekolah";
 
   if (view === "kelas") {
     const classes = await listClassesForYear(supabase, academicYear.id);
@@ -109,11 +108,9 @@ export default async function JadwalPage({
 
   const selectedId = entity ?? entityOptions[0]?.id;
   const selectedName = entityOptions.find((o) => o.id === selectedId)?.name;
-  if (view !== "sekolah") {
-    const emptyNoun =
-      view === "kelas" ? "kelas" : view === "guru" ? "guru" : view === "mapel" ? "mapel" : "ruang";
-    contextLabel = selectedName ? selectedName : `Belum ada ${emptyNoun} aktif`;
-  }
+  const emptyNoun =
+    view === "kelas" ? "kelas" : view === "guru" ? "guru" : view === "mapel" ? "mapel" : "ruang";
+  const contextLabel = selectedName ? selectedName : `Belum ada ${emptyNoun} aktif`;
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-10">
@@ -149,7 +146,7 @@ export default async function JadwalPage({
 
       <div className="mt-5 flex flex-wrap items-center gap-3" data-print="hide">
         <PerspectiveTabs active={view} />
-        {view !== "sekolah" && entityOptions.length > 0 && (
+        {entityOptions.length > 0 && (
           <EntitySelect view={view} options={entityOptions} selectedId={selectedId} />
         )}
       </div>
