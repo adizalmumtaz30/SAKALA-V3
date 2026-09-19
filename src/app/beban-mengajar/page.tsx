@@ -14,6 +14,7 @@ import { Copy } from "lucide-react";
 import { getIdentityColor } from "@/lib/domain/identity-color";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { DeleteBebanMengajarButton } from "@/components/master-data/DeleteBebanMengajarButton";
 
 export default async function BebanMengajarPage() {
   const supabase = await createClient();
