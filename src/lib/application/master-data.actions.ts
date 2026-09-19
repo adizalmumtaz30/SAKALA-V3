@@ -3,13 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getPrimarySchool } from "@/lib/data-access/school";
-import { getWorkspaceAcademicYear } from "@/lib/data-access/academic-year";
+import { getWorkspaceAcademicYear, updateMaxConsecutiveJp } from "@/lib/data-access/academic-year";
 import { recordHistory } from "@/lib/data-access/history";
 import { listSubjects, updateSubjectColor } from "@/lib/data-access/subject";
 import { nextAvailableColorKey, getIdentityColor } from "@/lib/domain/identity-color";
 
 export interface FormState {
   error?: string;
+  success?: string;
 }
 
 const emptyState: FormState = {};
@@ -462,4 +463,38 @@ export async function bulkActivateRoomAction(ids: string[]) {
 }
 export async function bulkDeactivateRoomAction(ids: string[]) {
   return bulkSetStatus("room", "ruang", "ruang", ids, "inactive");
+}
+
+// ---------------------------------------------------------------------------
+// Bagian D.1 — "Pengaturan Jadwal > Aturan".
+// ---------------------------------------------------------------------------
+export async function updateSchedulingRulesAction(
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const academicYearId = String(formData.get("academicYearId") ?? "");
+  const raw = String(formData.get("maxConsecutiveJp") ?? "").trim();
+  if (!academicYearId) return { error: "Tahun ajaran tidak ditemukan." };
+
+  const value = raw === "" ? null : Number(raw);
+  if (value !== null && (!Number.isInteger(value) || value < 1)) {
+    return { error: "Batas JP berturut-turut harus angka bulat, minimal 1." };
+  }
+
+  const supabase = await createClient();
+  await updateMaxConsecutiveJp(supabase, academicYearId, value);
+
+  await recordHistory(supabase, {
+    academicYearId,
+    entityType: "aturan_jadwal",
+    entityId: null,
+    action: "update",
+    summary:
+      value === null
+        ? "Batas JP mengajar berturut-turut dinonaktifkan (tidak dibatasi)"
+        : `Batas JP mengajar berturut-turut diatur ke ${value} JP`,
+  });
+
+  revalidatePath("/jadwal/aturan");
+  return { success: value === null ? "Batas dinonaktifkan." : `Batas diatur ke ${value} JP.` };
 }
