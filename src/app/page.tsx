@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Clock } from "lucide-react";
+import { Clock, AlertTriangle, CalendarDays, Zap, UserPlus, Upload, ClipboardCheck, FileText, ArrowRight } from "lucide-react";
 import {
   IconGuru,
   IconMapel,
@@ -14,13 +14,13 @@ import { listSubjects } from "@/lib/data-access/subject";
 import { listClassesForYear } from "@/lib/data-access/class";
 import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
 import { listTimeStructureForYear } from "@/lib/data-access/time-structure";
+import { listScheduleEntriesForYear } from "@/lib/data-access/schedule";
 import { computeDiagnosticIssues } from "@/lib/application/diagnostics";
-import { IssueList } from "@/components/ui/IssueList";
 import {
   CreateSchoolForm,
   CreateAcademicYearForm,
 } from "@/components/onboarding/SetupForm";
-import { DashboardHeroIllustration } from "@/components/dashboard/DashboardHeroIllustration";
+import { ReadinessRing } from "@/components/dashboard/ReadinessRing";
 
 export default async function BerandaPage() {
   const supabase = await createClient();
@@ -63,12 +63,13 @@ export default async function BerandaPage() {
     );
   }
 
-  const [teachers, subjects, classes, assignments, timeSlots] = await Promise.all([
+  const [teachers, subjects, classes, assignments, timeSlots, scheduleEntries] = await Promise.all([
     listTeachers(supabase),
     listSubjects(supabase),
     listClassesForYear(supabase, academicYear.id),
     listTeachingAssignmentsForYear(supabase, academicYear.id),
     listTimeStructureForYear(supabase, academicYear.id),
+    listScheduleEntriesForYear(supabase, academicYear.id).catch(() => []),
   ]);
 
   const checklist = [
@@ -117,98 +118,175 @@ export default async function BerandaPage() {
     timeSlots,
   });
   const hasBlockingIssue = issues.some((i) => i.severity === "blocked");
-  const readyForSchedule = assignments.length > 0 && !hasBlockingIssue;
-  const systemState =
-    !assignments.length || !timeSlots.length
-      ? "missing"
-      : hasBlockingIssue
-        ? "warning"
-        : "ready";
+  const allChecklistReady = checklist.every((item) => item.ready);
+  // "Siap untuk penjadwalan" = seluruh data minimum ada DAN tidak ada
+  // masalah yang memblokir — dua syarat berbeda, dicek terpisah supaya
+  // tidak pernah bilang "siap" padahal ada isu blocking yang belum
+  // ditangani (pelajaran dari insiden V2: jangan pernah fabrikasi status).
+  const systemReady = allChecklistReady && !hasBlockingIssue;
+  const scheduleExists = scheduleEntries.length > 0;
 
   return (
-    <div className="dashboard-page mx-auto max-w-[1440px] px-5 py-6 sm:px-7 lg:px-9">
-      <DashboardHeroIllustration
-        state={systemState}
-        schoolName={school.schoolName}
-        academicYear={academicYear.label}
-        teacherCount={teachers.length}
-        subjectCount={subjects.length}
-        classCount={classes.length}
-        assignmentCount={assignments.length}
-        timeSlotCount={timeSlots.length}
-        issueCount={issues.length}
-      />
+    <div className="mx-auto max-w-[1440px] px-5 py-6 sm:px-7 lg:px-9">
+      <div>
+        <h1 className="text-[26px] font-semibold tracking-[-0.01em] text-ink">
+          Beranda
+        </h1>
+        <p className="mt-1 text-[13px] text-ink-muted">
+          Command Center · Tahun Pelajaran {academicYear.label}
+        </p>
+      </div>
 
-      <div className="dashboard-below-grid">
-        <section className="dashboard-support-panel" aria-labelledby="dashboard-check-title">
-          <div className="dashboard-support-heading">
-            <div>
-              <p className="dashboard-support-eyebrow">KONTROL KESIAPAN</p>
-              <h2 id="dashboard-check-title">Perlu Dicek</h2>
+      {/* --- Kesiapan Sistem + Jadwal --- */}
+      <div className="mt-5 grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+        <section className="rounded-2xl border border-hairline bg-surface-elevated p-6">
+          <div className="flex items-start gap-4">
+            <ReadinessRing ready={systemReady} />
+            <div className="min-w-0 pt-1">
+              <p className="text-[12px] text-ink-muted">Kesiapan Sistem</p>
+              <p
+                className={`mt-0.5 text-[19px] font-semibold tracking-[-0.01em] ${
+                  systemReady ? "text-champagne" : "text-status-incomplete"
+                }`}
+              >
+                {systemReady ? "SIAP UNTUK PENJADWALAN" : "BELUM SIAP DIJADWALKAN"}
+              </p>
+              <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
+                {systemReady
+                  ? "Semua data minimum penjadwalan telah lengkap dan siap digunakan."
+                  : "Lengkapi data yang masih kosong di bawah ini sebelum mulai membuat jadwal."}
+              </p>
             </div>
-            <span className="dashboard-support-count">{issues.length}</span>
           </div>
-          <div className="dashboard-checklist">
+
+          <div className="mt-5 grid grid-cols-2 gap-3 border-t border-hairline pt-5 sm:grid-cols-5">
             {checklist.map((item) => {
               const Icon = item.icon;
               return (
                 <Link
                   key={item.label}
                   href={item.href}
-                  className="dashboard-check-item"
+                  className="group flex flex-col items-center gap-1.5 rounded-xl px-2 py-2 text-center transition-colors hover:bg-surface-focus"
                 >
-                  <span
-                    className={`dashboard-check-indicator dashboard-check-indicator--${item.ready ? "ready" : "pending"}`}
-                    aria-hidden
-                  />
-                  <Icon size={15} strokeWidth={1.65} className="dashboard-check-icon" />
-                  <span className="dashboard-check-label">{item.label}</span>
-                  <span className="dashboard-check-value">{item.count}</span>
+                  <span className="relative">
+                    <Icon size={20} strokeWidth={1.6} className="text-ink-muted group-hover:text-ink" />
+                    <span
+                      className={`absolute -right-1.5 -top-1.5 h-3 w-3 rounded-full border-2 border-surface-elevated ${
+                        item.ready ? "bg-status-ready" : "bg-status-incomplete"
+                      }`}
+                      aria-hidden
+                    />
+                  </span>
+                  <span className="text-[16px] font-semibold text-ink">{item.count}</span>
+                  <span className="text-[11px] leading-tight text-ink-faint">
+                    {item.label}
+                    <br />
+                    {item.ready ? "terdaftar" : "kosong"}
+                  </span>
                 </Link>
               );
             })}
           </div>
         </section>
 
-        <section className="dashboard-support-panel" aria-labelledby="dashboard-schedule-title">
-          <div className="dashboard-support-heading">
-            <div>
-              <p className="dashboard-support-eyebrow">STATUS OPERASIONAL</p>
-              <h2 id="dashboard-schedule-title">Jadwal</h2>
-            </div>
-            <span className={`dashboard-operational-state dashboard-operational-state--${systemState}`}>
-              {systemState === "ready" ? "Siap" : systemState === "warning" ? "Perlu Dicek" : "Belum Lengkap"}
-            </span>
+        <section className="flex flex-col rounded-2xl border border-hairline bg-surface-elevated p-6">
+          <div className="flex items-center gap-2 text-ink-muted">
+            <CalendarDays size={16} strokeWidth={1.75} />
+            <span className="text-[12px] font-medium uppercase tracking-[0.04em]">Jadwal</span>
           </div>
-          <p className="dashboard-support-copy">
-            {readyForSchedule
-              ? "Data pengajaran sudah lengkap dan konsisten. Kanvas jadwal dan Scheduling Engine akan menjadi tahap berikutnya."
-              : "Lengkapi data guru, mapel, kelas, beban mengajar, dan struktur waktu sebelum memulai penjadwalan."}
+          <p className="mt-3 text-[19px] font-semibold text-ink">
+            {scheduleExists ? `${scheduleEntries.length} pelajaran terjadwal` : "Belum dibuat"}
           </p>
-          <Link href="/jadwal" className="dashboard-support-link">
-            Buka Jadwal <span aria-hidden>→</span>
+          <p className="mt-1.5 flex-1 text-[13px] leading-relaxed text-ink-muted">
+            {systemReady
+              ? scheduleExists
+                ? "Kanvas Jadwal sudah mulai terisi. Lanjutkan menempatkan sisa pelajaran."
+                : "Seluruh data minimum penjadwalan telah siap."
+              : "Lengkapi Kesiapan Sistem di samping sebelum mulai membuat jadwal."}
+          </p>
+          <Link
+            href="/jadwal"
+            className="mt-4 flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-br from-champagne to-champagne/70 px-4 py-2.5 text-[13px] font-semibold text-canvas transition-opacity hover:opacity-90"
+          >
+            {scheduleExists ? "Buka Jadwal" : "Buat Jadwal"}
+            <ArrowRight size={14} strokeWidth={2} />
           </Link>
         </section>
+      </div>
 
-        <section className="dashboard-support-panel dashboard-support-panel--actions" aria-labelledby="dashboard-actions-title">
-          <div className="dashboard-support-heading">
-            <div>
-              <p className="dashboard-support-eyebrow">AKSI CEPAT</p>
-              <h2 id="dashboard-actions-title">Lanjutkan pekerjaan</h2>
+      {/* --- Perlu Dicek --- */}
+      {issues.length > 0 && (
+        <section className="mt-4 rounded-2xl border border-hairline bg-surface-elevated p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle size={16} strokeWidth={1.75} className="text-status-attention" />
+              <h2 className="text-[14px] font-medium text-ink">Perlu Dicek</h2>
             </div>
+            <span className="text-[12px] text-ink-faint">{issues.length} item</span>
           </div>
-          <div className="dashboard-action-links">
-            <Link href="/guru" className="dashboard-action-link">Tambah Guru</Link>
-            <Link href="/beban-mengajar" className="dashboard-action-link">Atur Beban</Link>
-            <Link href="/jadwal/struktur-waktu" className="dashboard-action-link">Struktur Waktu</Link>
-            <Link href="/import" className="dashboard-action-link">Import Data</Link>
+          <div className="mt-3 space-y-2">
+            {issues.map((issue, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-3 rounded-xl border border-hairline bg-surface px-4 py-3"
+              >
+                <span
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+                    issue.severity === "blocked"
+                      ? "bg-status-blocked/15 text-status-blocked"
+                      : "bg-status-attention/15 text-status-attention"
+                  }`}
+                >
+                  <AlertTriangle size={12} strokeWidth={2} />
+                </span>
+                <p className="min-w-0 flex-1 truncate text-[13px] text-ink">{issue.message}</p>
+                <Link
+                  href={issue.href}
+                  className="flex shrink-0 items-center gap-1 rounded-lg border border-hairline-strong px-3 py-1.5 text-[12px] text-ink-muted transition-colors hover:border-accent-teal hover:text-ink"
+                >
+                  {issue.actionLabel}
+                  <ArrowRight size={12} strokeWidth={2} />
+                </Link>
+              </div>
+            ))}
           </div>
         </section>
-      </div>
+      )}
 
-      <div className="dashboard-issues">
-        <IssueList issues={issues} />
-      </div>
+      {/* --- Aksi Cepat --- */}
+      <section className="mt-4 rounded-2xl border border-hairline bg-surface-elevated p-6">
+        <div className="flex items-center gap-2 text-ink-muted">
+          <Zap size={16} strokeWidth={1.75} />
+          <h2 className="text-[14px] font-medium text-ink">Aksi Cepat</h2>
+        </div>
+        <p className="mt-0.5 text-[12px] text-ink-faint">Lakukan hal utama dengan cepat.</p>
+
+        <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+          {[
+            { href: "/guru", label: "Tambah Guru", icon: UserPlus, highlight: false },
+            { href: "/import", label: "Import Data", icon: Upload, highlight: false },
+            { href: "/jadwal", label: scheduleExists ? "Buka Jadwal" : "Buat Jadwal", icon: CalendarDays, highlight: true },
+            { href: "/absensi", label: "Absensi Hari Ini", icon: ClipboardCheck, highlight: false },
+            { href: "/laporan", label: "Buat Laporan", icon: FileText, highlight: false },
+          ].map((action) => (
+            <Link
+              key={action.href}
+              href={action.href}
+              className={`flex flex-col justify-between gap-3 rounded-xl border px-4 py-3.5 transition-colors ${
+                action.highlight
+                  ? "border-transparent bg-gradient-to-br from-champagne to-champagne/70 text-canvas"
+                  : "border-hairline text-ink hover:border-hairline-strong hover:bg-surface-focus"
+              }`}
+            >
+              <action.icon size={18} strokeWidth={1.75} />
+              <span className="flex items-center justify-between text-[12.5px] font-medium">
+                {action.label}
+                <ArrowRight size={13} strokeWidth={2} />
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
