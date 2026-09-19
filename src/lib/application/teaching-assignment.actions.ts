@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { createTeachingAssignmentsBulk } from "@/lib/data-access/teaching-assignment";
+import { createTeachingAssignmentsBulk, listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
 import { recordHistory } from "@/lib/data-access/history";
 import { createBebanMengajarSchema } from "@/lib/validation/teaching-assignment.schema";
 
@@ -64,13 +64,17 @@ export async function deleteBebanMengajarAction(formData: FormData) {
   if (!id) return { error: "Beban mengajar tidak ditemukan." };
 
   const supabase = await createClient();
-  const { data: assignment, error: fetchError } = await supabase
+  const { data: assignmentRow, error: fetchError } = await supabase
     .from("teaching_assignment")
-    .select("academic_year_id, target_jp, teacher:teacher_id(name), subject:subject_id(name), class:class_id(name)")
+    .select("academic_year_id")
     .eq("id", id)
     .single();
 
-  if (fetchError || !assignment) return { error: "Beban mengajar tidak ditemukan." };
+  if (fetchError || !assignmentRow) return { error: "Beban mengajar tidak ditemukan." };
+
+  const assignments = await listTeachingAssignmentsForYear(supabase, assignmentRow.academic_year_id);
+  const assignment = assignments.find((item) => item.id === id);
+  if (!assignment) return { error: "Beban mengajar tidak ditemukan." };
 
   const { error } = await supabase
     .from("teaching_assignment")
@@ -79,16 +83,12 @@ export async function deleteBebanMengajarAction(formData: FormData) {
 
   if (error) return { error: error.message };
 
-  const teacherName = Array.isArray(assignment.teacher) ? assignment.teacher[0]?.name : assignment.teacher?.name;
-  const subjectName = Array.isArray(assignment.subject) ? assignment.subject[0]?.name : assignment.subject?.name;
-  const className = Array.isArray(assignment.class) ? assignment.class[0]?.name : assignment.class?.name;
-
   await recordHistory(supabase, {
-    academicYearId: assignment.academic_year_id,
+    academicYearId: assignment.academicYearId,
     entityType: "beban_mengajar",
     entityId: id,
     action: "delete",
-    summary: `Beban mengajar ${teacherName ?? ""} — ${subjectName ?? ""} — ${className ?? ""} (${assignment.target_jp} JP/minggu) dihapus`,
+    summary: `Beban mengajar ${assignment.teacherName} — ${assignment.subjectName} — ${assignment.className} (${assignment.targetJp} JP/minggu) dihapus`,
   });
 
   revalidatePath("/beban-mengajar");
