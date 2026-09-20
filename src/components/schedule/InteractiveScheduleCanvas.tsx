@@ -251,6 +251,9 @@ export function InteractiveScheduleCanvas({
                                   borderLeftWidth: 5,
                                 }}
                               >
+                                <p className="mb-1 text-[10px] text-ink-muted">
+                                  {formatTime(slot.startTime)}–{formatTime(slot.endTime)}
+                                </p>
                                 <p className="flex items-center gap-1.5 truncate text-[11.5px] font-medium text-ink">
                                   <span
                                     aria-hidden
@@ -274,14 +277,13 @@ export function InteractiveScheduleCanvas({
                           {slotEntries.length === 0 && (
                             <button
                               onClick={() => setOpenSlotId(slot.id)}
-                              data-print="hide"
                               aria-label={`Isi ${DAY_LABEL[day]} jam ke-${period}`}
-                              className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-hairline-strong px-2.5 py-1.5 text-[11px] text-ink-faint transition-colors hover:border-accent-teal hover:text-accent-teal"
+                              className="flex w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-hairline-strong px-2.5 py-2 text-[11px] text-ink-faint transition-colors hover:border-accent-teal hover:text-accent-teal"
                             >
+                              <Plus size={14} strokeWidth={2} />
                               <span className="text-[10px]">
                                 {formatTime(slot.startTime)}–{formatTime(slot.endTime)}
                               </span>
-                              <Plus size={12} strokeWidth={2} />
                             </button>
                           )}
                         </div>
