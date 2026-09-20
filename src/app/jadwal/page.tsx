@@ -103,11 +103,33 @@ export default async function JadwalPage({
     listRooms(supabase),
   ]);
   const progress = computeJpProgress(assignments, entries);
+
+  // Pemenuhan Target JP mengikuti konteks yang sedang dipilih. Jadi ketika
+  // operator memilih satu kelas/guru/mapel, ringkasan dan daftar target hanya
+  // menghitung beban mengajar milik konteks tersebut — bukan seluruh sekolah.
+  // Untuk perspektif Ruang, target JP tidak punya relasi ruang pada model
+  // Beban Mengajar, sehingga ringkasannya tetap memakai seluruh target.
+  const selectedId = entity ?? entityOptions[0]?.id;
+  const visibleProgress =
+    selectedId && view !== "ruang"
+      ? progress.filter((p) => {
+          if (view === "kelas") return assignments.find(
+            (a) => a.id === p.teachingAssignmentId,
+          )?.classId === selectedId;
+          if (view === "guru") return assignments.find(
+            (a) => a.id === p.teachingAssignmentId,
+          )?.teacherId === selectedId;
+          return assignments.find(
+            (a) => a.id === p.teachingAssignmentId,
+          )?.subjectId === selectedId;
+        })
+      : progress;
+
   const roomOptions = allRooms
     .filter((r) => r.status === "active")
     .map((r) => ({ id: r.id, name: r.name }));
 
-  const selectedId = entity ?? entityOptions[0]?.id;
+
   const selectedName = entityOptions.find((o) => o.id === selectedId)?.name;
   const emptyNoun =
     view === "kelas" ? "kelas" : view === "guru" ? "guru" : view === "mapel" ? "mapel" : "ruang";
@@ -163,7 +185,7 @@ export default async function JadwalPage({
       </div>
 
       <div className="mt-5" data-print="hide">
-        <JpProgressPanel progress={progress} />
+        <JpProgressPanel progress={visibleProgress} />
       </div>
 
       <div className="mt-4">
@@ -171,7 +193,7 @@ export default async function JadwalPage({
           academicYearId={academicYear.id}
           timeSlots={timeSlots}
           entries={entries}
-          progress={progress}
+          progress={visibleProgress}
           rooms={roomOptions}
           focusView={view}
           focusEntityId={selectedId ?? null}
