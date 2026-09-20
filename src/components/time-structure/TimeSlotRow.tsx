@@ -6,6 +6,7 @@ import {
   updateSlotDurationAction,
 } from "@/lib/application/time-structure.actions";
 import { useToast } from "@/components/ui/Toast";
+import { Save } from "lucide-react";
 import type { TimeSlot, TimeSlotType } from "@/lib/domain/time-structure";
 
 const TYPE_LABEL: Record<TimeSlotType, string> = {
@@ -106,9 +107,10 @@ export function TimeSlotRow({ slot }: { slot: TimeSlot }) {
 
         <button
           type="submit"
-          className="ml-auto shrink-0 rounded-lg border border-hairline-strong px-3 py-1.5 text-[12px] text-ink-muted transition-colors hover:text-ink"
+          className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-accent-teal px-3.5 py-2 text-[12px] font-semibold text-accent-teal-ink shadow-sm transition-colors hover:brightness-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-teal/40 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          Simpan Jenis
+          <Save size={14} strokeWidth={2} />
+          Simpan
         </button>
       </form>
     </div>

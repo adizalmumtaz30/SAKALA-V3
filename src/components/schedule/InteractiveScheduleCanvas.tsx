@@ -271,23 +271,19 @@ export function InteractiveScheduleCanvas({
                             );
                           })}
 
-                          <button
-                            onClick={() => setOpenSlotId(slot.id)}
-                            data-print="hide"
-                            aria-label={`Isi ${DAY_LABEL[day]} jam ke-${period}`}
-                            className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-hairline-strong px-2.5 py-1.5 text-[11px] text-ink-faint transition-colors hover:border-accent-teal hover:text-accent-teal"
-                          >
-                            {slotEntries.length === 0 ? (
-                              <>
-                                <span className="text-[10px]">
-                                  {formatTime(slot.startTime)}
-                                </span>
-                                <Plus size={12} strokeWidth={2} />
-                              </>
-                            ) : (
+                          {slotEntries.length === 0 && (
+                            <button
+                              onClick={() => setOpenSlotId(slot.id)}
+                              data-print="hide"
+                              aria-label={`Isi ${DAY_LABEL[day]} jam ke-${period}`}
+                              className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-hairline-strong px-2.5 py-1.5 text-[11px] text-ink-faint transition-colors hover:border-accent-teal hover:text-accent-teal"
+                            >
+                              <span className="text-[10px]">
+                                {formatTime(slot.startTime)}
+                              </span>
                               <Plus size={12} strokeWidth={2} />
-                            )}
-                          </button>
+                            </button>
+                          )}
                         </div>
                       </td>
                     );
