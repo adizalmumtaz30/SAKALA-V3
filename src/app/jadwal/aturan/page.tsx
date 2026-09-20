@@ -44,13 +44,6 @@ export default async function AturanJadwalPage() {
           action={updateSchedulingRulesAction}
         />
       </div>
-
-      <p className="mt-4 max-w-xl text-[12px] leading-relaxed text-ink-faint">
-        Belum tersedia di sini: aturan continuity (istirahat tidak boleh
-        memutus rangkaian mapel yang sama) — masih ditelaah lebih lanjut
-        sebelum diimplementasikan, supaya tidak salah tafsir aturan
-        sekolahmu.
-      </p>
     </div>
   );
 }

@@ -22,10 +22,22 @@ import { DAYS } from "@/lib/domain/time-structure";
  *     fungsi ini sendiri tetap sama, cuma existingEntries yang dikirim
  *     sudah kosong untuk kelas itu.
  *
- * TIDAK termasuk: continuity rule istirahat (masih ditelaah, sama seperti
- * yang tercatat di halaman Aturan), dan tidak pernah memilih ruang
- * (auto-fill sengaja tidak menetapkan ruang — operator yang menentukan
- * kalau memang perlu).
+ * TIDAK termasuk: pemilihan ruang (auto-fill sengaja tidak menetapkan
+ * ruang — operator yang menentukan kalau memang perlu).
+ *
+ * CONTINUITY RULE (istirahat tidak boleh memutus rangkaian mapel yang
+ * sama) — diterapkan sebagai PREFERENSI URUTAN internal, bukan aturan
+ * blocking dan bukan pengaturan yang tampil ke operator (sesuai arahan:
+ * "berada dibelakang tidak perlu tampil"). Untuk assignment yang masih
+ * butuh >1 JP, kandidat slot yang BERSAMBUNG LANGSUNG (period_number
+ * selisih 1, hari sama) dengan JP assignment itu yang sudah ditempatkan
+ * SELALU dicoba lebih dulu daripada slot lain — dan karena teachingSlots
+ * di sini sudah difilter hanya type "mengajar", dua slot mengajar dengan
+ * period_number TIDAK bersebelahan pasti dipisahkan istirahat/kegiatan di
+ * antaranya. Jadi "selisih 1" secara struktural berarti "tidak dipisah
+ * istirahat". Ini preferensi, bukan blok keras — kalau tidak ada slot
+ * bersambung yang lolos findConflicts(), tetap boleh menempatkan JP di
+ * hari/jam lain daripada gagal total.
  */
 
 export interface AutoFillPlacement {
@@ -109,65 +121,100 @@ export function autoFillClassSchedule(input: {
 
     if (remaining <= 0) continue;
 
-    for (const slot of teachingSlots) {
-      if (remaining <= 0) break;
+    // Period yang sudah ditempati assignment ini, per hari — dipakai untuk
+    // preferensi continuity. Termasuk yang sudah ada di DB sebelumnya
+    // (mode "lengkapi slot kosong" bisa menyambung ke JP yang sudah
+    // ditempatkan manual sebelumnya).
+    const placedPeriodsByDay = new Map<Day, Set<number>>();
+    for (const e of workingEntries) {
+      if (e.teachingAssignmentId !== assignment.id) continue;
+      const set = placedPeriodsByDay.get(e.day as Day) ?? new Set<number>();
+      set.add(e.periodNumber);
+      placedPeriodsByDay.set(e.day as Day, set);
+    }
 
-      const slotKey = `${slot.day}__${slot.periodNumber}`;
-      if (occupiedByThisClass.has(slotKey)) continue; // aturan "a"
+    const isContinuity = (slot: TimeSlot) => {
+      const placed = placedPeriodsByDay.get(slot.day as Day);
+      if (!placed) return false;
+      return placed.has(slot.periodNumber - 1) || placed.has(slot.periodNumber + 1);
+    };
 
-      const conflicts = findConflicts(
-        {
-          day: slot.day,
-          periodNumber: slot.periodNumber,
-          teacherId: assignment.teacherId,
-          teacherName: assignment.teacherName,
-          classId: assignment.classId,
-          className: assignment.className,
-          roomId: null,
-          roomName: null,
-        },
-        workingEntries,
-        maxConsecutiveJp,
-      );
-      if (conflicts.length > 0) continue; // aturan "c" & "d"
-
-      const placement: AutoFillPlacement = {
-        teachingAssignmentId: assignment.id,
-        teacherId: assignment.teacherId,
-        teacherName: assignment.teacherName,
-        subjectId: assignment.subjectId,
-        subjectName: assignment.subjectName,
-        subjectColorKey: assignment.subjectColorKey,
-        classId: assignment.classId,
-        className: assignment.className,
-        day: slot.day,
-        periodNumber: slot.periodNumber,
-      };
-      placements.push(placement);
-
-      // Kandidat ini langsung "aktif" untuk pengecekan berikutnya.
-      occupiedByThisClass.add(slotKey);
-      workingEntries.push({
-        id: `pending-${placements.length}`,
-        academicYearId: assignment.academicYearId,
-        teachingAssignmentId: assignment.id,
-        roomId: null,
-        teacherId: assignment.teacherId,
-        subjectId: assignment.subjectId,
-        classId: assignment.classId,
-        day: slot.day,
-        periodNumber: slot.periodNumber,
-        source: "auto",
-        locked: false,
-        teacherName: assignment.teacherName,
-        subjectName: assignment.subjectName,
-        subjectColorKey: assignment.subjectColorKey,
-        className: assignment.className,
-        roomName: null,
+    while (remaining > 0) {
+      // Kandidat continuity dicoba lebih dulu, baru sisanya — urutan
+      // hari/jam alami tetap dipertahankan di masing-masing kelompok
+      // supaya hasilnya deterministik (bukan acak).
+      const candidates = [...teachingSlots].sort((a, b) => {
+        const pa = isContinuity(a) ? 0 : 1;
+        const pb = isContinuity(b) ? 0 : 1;
+        return pa - pb;
       });
 
-      remaining -= 1;
-      filledThisRun += 1;
+      let placedOne = false;
+
+      for (const slot of candidates) {
+        const slotKey = `${slot.day}__${slot.periodNumber}`;
+        if (occupiedByThisClass.has(slotKey)) continue; // aturan "a"
+
+        const conflicts = findConflicts(
+          {
+            day: slot.day,
+            periodNumber: slot.periodNumber,
+            teacherId: assignment.teacherId,
+            teacherName: assignment.teacherName,
+            classId: assignment.classId,
+            className: assignment.className,
+            roomId: null,
+            roomName: null,
+          },
+          workingEntries,
+          maxConsecutiveJp,
+        );
+        if (conflicts.length > 0) continue; // aturan "c" & "d"
+
+        const placement: AutoFillPlacement = {
+          teachingAssignmentId: assignment.id,
+          teacherId: assignment.teacherId,
+          teacherName: assignment.teacherName,
+          subjectId: assignment.subjectId,
+          subjectName: assignment.subjectName,
+          subjectColorKey: assignment.subjectColorKey,
+          classId: assignment.classId,
+          className: assignment.className,
+          day: slot.day,
+          periodNumber: slot.periodNumber,
+        };
+        placements.push(placement);
+
+        occupiedByThisClass.add(slotKey);
+        workingEntries.push({
+          id: `pending-${placements.length}`,
+          academicYearId: assignment.academicYearId,
+          teachingAssignmentId: assignment.id,
+          roomId: null,
+          teacherId: assignment.teacherId,
+          subjectId: assignment.subjectId,
+          classId: assignment.classId,
+          day: slot.day,
+          periodNumber: slot.periodNumber,
+          source: "auto",
+          locked: false,
+          teacherName: assignment.teacherName,
+          subjectName: assignment.subjectName,
+          subjectColorKey: assignment.subjectColorKey,
+          className: assignment.className,
+          roomName: null,
+        });
+        const daySet = placedPeriodsByDay.get(slot.day as Day) ?? new Set<number>();
+        daySet.add(slot.periodNumber);
+        placedPeriodsByDay.set(slot.day as Day, daySet);
+
+        remaining -= 1;
+        filledThisRun += 1;
+        placedOne = true;
+        break;
+      }
+
+      if (!placedOne) break; // tidak ada slot tersisa yang lolos sama sekali
     }
 
     if (remaining > 0) {
