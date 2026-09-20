@@ -1,12 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Plus } from "lucide-react";
 import type { TimeSlot, Day } from "@/lib/domain/time-structure";
 import { DAYS, DAY_LABEL } from "@/lib/domain/time-structure";
 import type { ScheduleEntry, JpProgress } from "@/lib/domain/schedule";
 import { getIdentityColor, withAlpha } from "@/lib/domain/identity-color";
 import { SlotEditor } from "@/components/schedule/SlotEditor";
+import { moveScheduleEntryAction } from "@/lib/application/schedule.actions";
+import { useToast } from "@/components/ui/Toast";
 
 function formatTime(t: string) {
   return t.slice(0, 5);
@@ -43,16 +45,32 @@ export function InteractiveScheduleCanvas({
 }: Props) {
   const [openSlotId, setOpenSlotId] = useState<string | null>(null);
 
-  // Saat melihat per kelas/guru/mapel/ruang, entri lain diredupkan bukan
-  // dibuang — operator tetap sadar jam itu sebenarnya terpakai. Dihitung
-  // di sini (klien), bukan diterima sebagai prop function dari server.
-  const focusFilter = useMemo(() => {
-    if (!focusView || focusView === "sekolah" || !focusEntityId) return undefined;
-    if (focusView === "kelas") return (e: ScheduleEntry) => e.classId === focusEntityId;
-    if (focusView === "guru") return (e: ScheduleEntry) => e.teacherId === focusEntityId;
-    if (focusView === "mapel") return (e: ScheduleEntry) => e.subjectId === focusEntityId;
-    return (e: ScheduleEntry) => e.roomId === focusEntityId;
-  }, [focusView, focusEntityId]);
+  // §Segmentasi murni — sebelumnya entri di luar pilihan cuma diredupkan
+  // (tetap tampil, opacity turun). Diubah atas permintaan eksplisit
+  // pemilik produk: saat Kelas/Guru/Mapel/Ruang dipilih, entri lain TIDAK
+  // ditampilkan sama sekali, bukan cuma pudar — grid dan cetak (yang
+  // membaca DOM yang sama) otomatis ikut tersegmentasi karena filter ini
+  // diterapkan di sumber datanya (visibleEntries), bukan di gaya tampilan.
+  const visibleEntries = useMemo(() => {
+    if (!focusView || focusView === "sekolah" || !focusEntityId) return entries;
+    const matches = (e: ScheduleEntry) => {
+      if (focusView === "kelas") return e.classId === focusEntityId;
+      if (focusView === "guru") return e.teacherId === focusEntityId;
+      if (focusView === "mapel") return e.subjectId === focusEntityId;
+      return e.roomId === focusEntityId;
+    };
+    return entries.filter(matches);
+  }, [entries, focusView, focusEntityId]);
+
+  // §Item 3 — "digeser bukan tombol": memindah pelajaran yang sudah ada
+  // sekarang utamanya lewat drag (native HTML5 DnD, tanpa pustaka
+  // tambahan). Tombol "Pindah" di panel (SlotEditor) TETAP ada di
+  // belakangnya — operator yang tidak bisa/tidak mau drag (keyboard,
+  // pembaca layar, mouse tidak presisi) masih punya jalan.
+  const [draggingEntryId, setDraggingEntryId] = useState<string | null>(null);
+  const [dragOverSlotKey, setDragOverSlotKey] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+  const { show: showToast } = useToast();
 
   const activeSlots = useMemo(
     () => timeSlots.filter((s) => s.status === "active"),
@@ -71,17 +89,18 @@ export function InteractiveScheduleCanvas({
   );
 
   // Entri tidak lagi punya timeSlotId (skema live menyimpan day+period_number
-  // langsung) — kelompokkan pakai kunci komposit itu.
+  // langsung) — kelompokkan pakai kunci komposit itu. Dibangun dari
+  // visibleEntries (sudah tersegmentasi), bukan entries mentah.
   const entriesBySlot = useMemo(() => {
     const map = new Map<string, ScheduleEntry[]>();
-    for (const e of entries) {
+    for (const e of visibleEntries) {
       const key = `${e.day}__${e.periodNumber}`;
       const list = map.get(key) ?? [];
       list.push(e);
       map.set(key, list);
     }
     return map;
-  }, [entries]);
+  }, [visibleEntries]);
 
   const teachingSlots = useMemo(
     () =>
@@ -99,6 +118,33 @@ export function InteractiveScheduleCanvas({
 
   const cell = (day: Day, period: number) =>
     activeSlots.find((s) => s.day === day && s.periodNumber === period) ?? null;
+
+  function handleDrop(day: Day, periodNumber: number, entry: ScheduleEntry) {
+    setDragOverSlotKey(null);
+    setDraggingEntryId(null);
+    if (entry.day === day && entry.periodNumber === periodNumber) return; // dijatuhkan di tempat sendiri
+
+    const targetSlot = teachingSlots.find(
+      (s) => s.day === day && s.periodNumber === periodNumber,
+    );
+    if (!targetSlot) return;
+
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set("entryId", entry.id);
+      formData.set("academicYearId", academicYearId);
+      formData.set("targetSlotId", targetSlot.id);
+
+      const result = await moveScheduleEntryAction({}, formData);
+      if (result.conflicts) {
+        showToast({ message: result.conflicts[0], tone: "danger" });
+      } else if (result.error) {
+        showToast({ message: result.error, tone: "danger" });
+      } else if (result.success) {
+        showToast({ message: result.success, tone: "success" });
+      }
+    });
+  }
 
   return (
     <>
@@ -140,24 +186,55 @@ export function InteractiveScheduleCanvas({
                     );
                   }
 
-                  const slotEntries = entriesBySlot.get(`${day}__${period}`) ?? [];
+                  const slotKey = `${day}__${period}`;
+                  const slotEntries = entriesBySlot.get(slotKey) ?? [];
 
                   if (slot.type === "mengajar") {
+                    const isDragOver = dragOverSlotKey === slotKey;
                     return (
                       <td
                         key={day}
-                        className="border-l border-hairline px-2 py-2 align-top"
+                        onDragOver={(ev) => {
+                          if (!draggingEntryId) return;
+                          ev.preventDefault();
+                          if (dragOverSlotKey !== slotKey) setDragOverSlotKey(slotKey);
+                        }}
+                        onDragLeave={() => {
+                          if (dragOverSlotKey === slotKey) setDragOverSlotKey(null);
+                        }}
+                        onDrop={(ev) => {
+                          ev.preventDefault();
+                          const entry = visibleEntries.find((e) => e.id === draggingEntryId);
+                          if (entry) handleDrop(day, period, entry);
+                        }}
+                        className={`border-l border-hairline px-2 py-2 align-top transition-colors ${
+                          isDragOver ? "bg-accent-teal/10" : ""
+                        }`}
                       >
                         <div className="space-y-1.5">
                           {slotEntries.map((e) => {
                             const color = getIdentityColor(e.subjectColorKey);
-                            const dimmed = focusFilter ? !focusFilter(e) : false;
+                            const isBeingDragged = draggingEntryId === e.id;
                             return (
-                              <button
+                              <div
                                 key={e.id}
+                                draggable
+                                onDragStart={(ev) => {
+                                  setDraggingEntryId(e.id);
+                                  ev.dataTransfer.effectAllowed = "move";
+                                }}
+                                onDragEnd={() => {
+                                  setDraggingEntryId(null);
+                                  setDragOverSlotKey(null);
+                                }}
                                 onClick={() => setOpenSlotId(slot.id)}
-                                className={`block w-full overflow-hidden rounded-lg border px-2.5 py-1.5 text-left transition-all hover:brightness-105 ${
-                                  dimmed ? "opacity-35" : ""
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(ev) => {
+                                  if (ev.key === "Enter" || ev.key === " ") setOpenSlotId(slot.id);
+                                }}
+                                className={`block w-full cursor-grab overflow-hidden rounded-lg border px-2.5 py-1.5 text-left transition-all hover:brightness-105 active:cursor-grabbing ${
+                                  isBeingDragged ? "opacity-40" : ""
                                 }`}
                                 style={{
                                   borderColor: color?.accent ?? undefined,
@@ -190,7 +267,7 @@ export function InteractiveScheduleCanvas({
                                     {e.roomName}
                                   </p>
                                 )}
-                              </button>
+                              </div>
                             );
                           })}
 
