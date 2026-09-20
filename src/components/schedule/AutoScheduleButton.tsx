@@ -9,6 +9,7 @@ import {
   autoFillScheduleAction,
   type AutoFillActionState,
 } from "@/lib/application/schedule.actions";
+import type { SpreadPreference } from "@/lib/application/schedule-autofill";
 
 type Mode = "fill-empty" | "full-week";
 
@@ -31,6 +32,7 @@ export function AutoScheduleButton({
   className: string;
 }) {
   const [pending, startTransition] = useTransition();
+  const [spreadPreference, setSpreadPreference] = useState<SpreadPreference>("balanced");
   const [confirmMode, setConfirmMode] = useState<Mode | null>(null);
   const [result, setResult] = useState<AutoFillActionState["result"] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +45,7 @@ export function AutoScheduleButton({
       formData.set("academicYearId", academicYearId);
       formData.set("classId", classId);
       formData.set("mode", mode);
+      formData.set("spreadPreference", spreadPreference);
       const state = await autoFillScheduleAction({}, formData);
       if (state.error) setError(state.error);
       else if (state.result) setResult(state.result);
@@ -77,6 +80,48 @@ export function AutoScheduleButton({
             sideOffset={6}
             className="z-40 w-72 rounded-xl border border-hairline-strong bg-surface-overlay p-1.5 shadow-2xl"
           >
+            {/* §LOCK 10 master spec — "Generator operator-facing pakai
+                Pemetaan + Persebaran". Slider (bukan tombol), 3 posisi.
+                Ditaruh sebagai div biasa (bukan DropdownMenu.Item) supaya
+                interaksi geser tidak langsung menutup menu. */}
+            <div className="px-3 pb-2.5 pt-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-medium text-ink">Pemetaan & Persebaran</p>
+                <span className="text-[10.5px] text-ink-faint">
+                  {spreadPreference === "concentrated"
+                    ? "Terkonsentrasi"
+                    : spreadPreference === "spread"
+                      ? "Merata"
+                      : "Seimbang"}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={2}
+                step={1}
+                value={spreadPreference === "concentrated" ? 0 : spreadPreference === "balanced" ? 1 : 2}
+                onChange={(ev) => {
+                  const v = Number(ev.target.value);
+                  setSpreadPreference(v === 0 ? "concentrated" : v === 2 ? "spread" : "balanced");
+                }}
+                aria-label="Pemetaan dan Persebaran"
+                className="mt-2 w-full accent-accent-teal"
+              />
+              <div className="mt-0.5 flex justify-between text-[9.5px] text-ink-faint">
+                <span>Terkonsentrasi</span>
+                <span>Merata</span>
+              </div>
+              <p className="mt-1.5 text-[10.5px] leading-relaxed text-ink-faint">
+                {spreadPreference === "concentrated"
+                  ? "JP yang sama disambung dulu sebelum melebar ke hari lain."
+                  : spreadPreference === "spread"
+                    ? "JP yang sama diusahakan tersebar ke hari berbeda dulu."
+                    : "Menyambung dan menyebar dipertimbangkan setara."}
+              </p>
+            </div>
+            <div className="my-1 border-t border-hairline" />
+
             <DropdownMenu.Item
               onSelect={() => selectMode("fill-empty")}
               className="cursor-pointer rounded-lg px-3 py-2.5 text-[12.5px] text-ink outline-none transition-colors data-[highlighted]:bg-surface-focus"
@@ -135,6 +180,14 @@ export function AutoScheduleButton({
           onClose={() => setResult(null)}
         >
           <div className="space-y-5">
+            <p className="-mt-3 text-[11.5px] text-ink-faint">
+              Pemetaan & Persebaran:{" "}
+              {result.spreadPreference === "concentrated"
+                ? "Terkonsentrasi"
+                : result.spreadPreference === "spread"
+                  ? "Merata"
+                  : "Seimbang"}
+            </p>
             <div className="flex items-center gap-2.5 rounded-xl border border-status-ready/30 bg-status-ready/[0.08] px-3.5 py-3">
               <CheckCircle2 size={16} strokeWidth={2} className="shrink-0 text-status-ready" />
               <p className="text-[12.5px] text-ink">

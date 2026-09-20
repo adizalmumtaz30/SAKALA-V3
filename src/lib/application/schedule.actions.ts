@@ -9,7 +9,7 @@ import {
   deleteScheduleEntriesForClass,
   moveScheduleEntry,
 } from "@/lib/data-access/schedule";
-import { autoFillClassSchedule } from "@/lib/application/schedule-autofill";
+import { autoFillClassSchedule, type SpreadPreference } from "@/lib/application/schedule-autofill";
 import { computeDiagnosticIssues } from "@/lib/application/diagnostics";
 import { listTeachers } from "@/lib/data-access/teacher";
 import { listSubjects } from "@/lib/data-access/subject";
@@ -369,6 +369,7 @@ export interface AutoFillActionState {
     classId: string;
     className: string;
     mode: "fill-empty" | "full-week";
+    spreadPreference: SpreadPreference;
     placedCount: number;
     deletedCount: number;
     shortfalls: {
@@ -394,6 +395,9 @@ export async function autoFillScheduleAction(
   const academicYearId = String(formData.get("academicYearId") ?? "");
   const classId = String(formData.get("classId") ?? "");
   const mode = String(formData.get("mode") ?? "") as "fill-empty" | "full-week";
+  const spreadRaw = String(formData.get("spreadPreference") ?? "balanced");
+  const spreadPreference: SpreadPreference =
+    spreadRaw === "concentrated" || spreadRaw === "spread" ? spreadRaw : "balanced";
 
   if (!academicYearId || !classId) return { error: "Pilih kelas dulu." };
   if (mode !== "fill-empty" && mode !== "full-week") {
@@ -430,6 +434,7 @@ export async function autoFillScheduleAction(
     timeSlots,
     existingEntries: currentEntries,
     maxConsecutiveJp: academicYear?.maxConsecutiveJp ?? null,
+    spreadPreference,
   });
 
   // Insert ATOMIK (satu statement) mengikuti pola createScheduleEntries
@@ -468,6 +473,12 @@ export async function autoFillScheduleAction(
     issue.message.includes(targetClass.name),
   );
 
+  const SPREAD_LABEL: Record<SpreadPreference, string> = {
+    concentrated: "Terkonsentrasi",
+    balanced: "Seimbang",
+    spread: "Merata",
+  };
+
   await recordHistory(supabase, {
     academicYearId,
     entityType: "schedule_entry",
@@ -475,8 +486,8 @@ export async function autoFillScheduleAction(
     action: mode === "full-week" ? "auto_fill_full_week" : "auto_fill_empty",
     summary:
       mode === "full-week"
-        ? `Jadwal Otomatis — ${targetClass.name}: ${deletedCount} entri lama dihapus, ${placedCount} pelajaran ditempatkan ulang`
-        : `Jadwal Otomatis — ${targetClass.name}: ${placedCount} slot kosong terisi`,
+        ? `Jadwal Otomatis (${SPREAD_LABEL[spreadPreference]}) — ${targetClass.name}: ${deletedCount} entri lama dihapus, ${placedCount} pelajaran ditempatkan ulang`
+        : `Jadwal Otomatis (${SPREAD_LABEL[spreadPreference]}) — ${targetClass.name}: ${placedCount} slot kosong terisi`,
   });
 
   revalidatePath("/jadwal");
@@ -486,6 +497,7 @@ export async function autoFillScheduleAction(
       classId,
       className: targetClass.name,
       mode,
+      spreadPreference,
       placedCount,
       deletedCount,
       shortfalls: shortfalls.map((s) => ({

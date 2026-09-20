@@ -38,7 +38,24 @@ import { DAYS } from "@/lib/domain/time-structure";
  * istirahat". Ini preferensi, bukan blok keras — kalau tidak ada slot
  * bersambung yang lolos findConflicts(), tetap boleh menempatkan JP di
  * hari/jam lain daripada gagal total.
+ *
+ * PEMETAAN & PERSEBARAN (LOCK 10, master spec — "Generator operator-facing
+ * pakai Pemetaan + Persebaran") — satu slider 3-posisi yang operator lihat
+ * di panel Jadwal Otomatis:
+ *  - "concentrated" (Terkonsentrasi): condongkan ke continuity — JP yang
+ *    sama disambung dulu sebelum melebar ke hari baru.
+ *  - "spread" (Merata): condongkan ke hari baru — sebuah assignment
+ *    diusahakan hadir di sebanyak mungkin hari berbeda dulu, continuity
+ *    cuma jadi penentu kalau semua hari sudah kepakai.
+ *  - "balanced" (Seimbang, default): dua pertimbangan itu ditimbang setara.
+ *
+ * Ini LEVEL 3 (PREFERENCE) di hierarki C.2 master spec — selalu di bawah
+ * VALIDITY (findConflicts) dan tidak pernah membuat kandidat yang sudah
+ * lolos findConflicts() jadi ditolak; cuma menentukan URUTAN mana yang
+ * dicoba lebih dulu.
  */
+
+export type SpreadPreference = "concentrated" | "balanced" | "spread";
 
 export interface AutoFillPlacement {
   teachingAssignmentId: string;
@@ -76,8 +93,10 @@ export function autoFillClassSchedule(input: {
   timeSlots: TimeSlot[];
   existingEntries: ScheduleEntry[];
   maxConsecutiveJp: number | null;
+  spreadPreference?: SpreadPreference;
 }): AutoFillResult {
   const { classId, timeSlots, maxConsecutiveJp } = input;
+  const spreadPreference = input.spreadPreference ?? "balanced";
 
   const classAssignments = input.assignments.filter(
     (a) => a.classId === classId && a.status === "active",
@@ -138,15 +157,26 @@ export function autoFillClassSchedule(input: {
       if (!placed) return false;
       return placed.has(slot.periodNumber - 1) || placed.has(slot.periodNumber + 1);
     };
+    const dayUsage = (day: Day) => placedPeriodsByDay.get(day)?.size ?? 0;
 
     while (remaining > 0) {
-      // Kandidat continuity dicoba lebih dulu, baru sisanya — urutan
-      // hari/jam alami tetap dipertahankan di masing-masing kelompok
-      // supaya hasilnya deterministik (bukan acak).
+      // Pemetaan & Persebaran — urutan kandidat menyesuaikan slider yang
+      // operator pilih (lihat dokumentasi SpreadPreference di atas).
+      // Urutan hari/jam alami tetap dipertahankan di dalam masing-masing
+      // kelompok prioritas supaya hasilnya deterministik (bukan acak).
       const candidates = [...teachingSlots].sort((a, b) => {
-        const pa = isContinuity(a) ? 0 : 1;
-        const pb = isContinuity(b) ? 0 : 1;
-        return pa - pb;
+        const contA = isContinuity(a) ? 0 : 1;
+        const contB = isContinuity(b) ? 0 : 1;
+        const newDayA = dayUsage(a.day as Day) === 0 ? 0 : 1;
+        const newDayB = dayUsage(b.day as Day) === 0 ? 0 : 1;
+
+        if (spreadPreference === "concentrated") {
+          return contA !== contB ? contA - contB : newDayA - newDayB;
+        }
+        if (spreadPreference === "spread") {
+          return newDayA !== newDayB ? newDayA - newDayB : contA - contB;
+        }
+        return contA + newDayA - (contB + newDayB); // balanced
       });
 
       let placedOne = false;
