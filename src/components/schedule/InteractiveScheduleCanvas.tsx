@@ -279,7 +279,7 @@ export function InteractiveScheduleCanvas({
                               className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-hairline-strong px-2.5 py-1.5 text-[11px] text-ink-faint transition-colors hover:border-accent-teal hover:text-accent-teal"
                             >
                               <span className="text-[10px]">
-                                {formatTime(slot.startTime)}
+                                {formatTime(slot.startTime)}–{formatTime(slot.endTime)}
                               </span>
                               <Plus size={12} strokeWidth={2} />
                             </button>
