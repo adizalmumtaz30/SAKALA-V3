@@ -216,6 +216,12 @@ body {
   [data-print="title"] {
     display: block !important;
   }
+
+  /* Tombol slot kosong tetap tercetak sebagai informasi waktu, tetapi
+     kontrol interaktif "+" disembunyikan di kertas. */
+  button[aria-label^="Isi " ] svg {
+    display: none !important;
+  }
 }
 
 /* Judul khusus cetak disembunyikan di layar. */
