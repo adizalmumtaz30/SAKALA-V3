@@ -39,6 +39,30 @@ import { DAYS } from "@/lib/domain/time-structure";
  * bersambung yang lolos findConflicts(), tetap boleh menempatkan JP di
  * hari/jam lain daripada gagal total.
  *
+ * KERAPIHAN — GAP AVOIDANCE & BEBAN HARIAN (LEVEL 2 QUALITY, master spec
+ * C.2: "distribusi, gap, beban, konsistensi" — secara eksplisit LEBIH
+ * TINGGI prioritasnya daripada slider Pemetaan/Persebaran di bawah, yang
+ * cuma LEVEL 3 PREFERENCE). Ditambahkan setelah operator melaporkan
+ * "lompat jam" nyata: Kelas IX_A hari Jumat terisi jam ke-3 lalu lompat ke
+ * jam ke-8, jam 4-7 kosong — dan Senin-Rabu penuh sampai jam ke-9
+ * sementara Kamis-Sabtu cuma sampai jam ke-3.
+ *
+ * Dua sinyal BARU dihitung di tingkat KELAS (lintas semua assignment
+ * kelas itu, bukan per-assignment seperti continuity di atas):
+ *  1. FRONTIER — slot yang melanjutkan pengisian dari depan tanpa
+ *     lubang (period_number = jam terakhir yang sudah terisi kelas itu
+ *     pada hari itu + 1, atau jam ke-1 kalau hari itu masih kosong)
+ *     SELALU dicoba lebih dulu daripada slot yang meninggalkan/membuat
+ *     lubang.
+ *  2. BEBAN HARIAN — di antara slot yang sama-sama frontier, hari yang
+ *     JP-nya masih lebih sedikit didahulukan, supaya minggu terisi rata
+ *     (bukan Senin-Rabu penuh dulu baru sisanya ke Kamis-Sabtu).
+ *
+ * Sama seperti continuity & spread: ini PREFERENSI URUTAN, bukan blok
+ * keras — kalau satu-satunya slot yang lolos findConflicts() kebetulan
+ * bukan frontier, tetap dipakai daripada gagal total (VALID tetap di
+ * atas segalanya).
+ *
  * PEMETAAN & PERSEBARAN (LOCK 10, master spec — "Generator operator-facing
  * pakai Pemetaan + Persebaran") — satu slider 3-posisi yang operator lihat
  * di panel Jadwal Otomatis:
@@ -49,10 +73,11 @@ import { DAYS } from "@/lib/domain/time-structure";
  *    cuma jadi penentu kalau semua hari sudah kepakai.
  *  - "balanced" (Seimbang, default): dua pertimbangan itu ditimbang setara.
  *
- * Ini LEVEL 3 (PREFERENCE) di hierarki C.2 master spec — selalu di bawah
- * VALIDITY (findConflicts) dan tidak pernah membuat kandidat yang sudah
- * lolos findConflicts() jadi ditolak; cuma menentukan URUTAN mana yang
- * dicoba lebih dulu.
+ * URUTAN PRIORITAS lengkap tiap kandidat slot (tinggi ke rendah):
+ *   VALIDITY (findConflicts, tidak bisa dilewati)
+ *   > FRONTIER (tidak membuat lubang)
+ *   > BEBAN HARIAN (hari lebih kosong didahulukan)
+ *   > continuity/spread assignment ini (slider Pemetaan & Persebaran)
  */
 
 export type SpreadPreference = "concentrated" | "balanced" | "spread";
@@ -117,6 +142,20 @@ export function autoFillClassSchedule(input: {
       .map((e) => `${e.day}__${e.periodNumber}`),
   );
 
+  // §Kerapihan — dihitung di tingkat KELAS, lintas semua assignment
+  // (bukan per-assignment seperti placedPeriodsByDay di bawah nanti).
+  // classDayMax: jam terakhir yang sudah terisi kelas ini per hari (0 =
+  // hari itu masih kosong). classDayCount: total JP terisi per hari,
+  // dipakai untuk menyeimbangkan beban antar hari.
+  const classDayMax = new Map<Day, number>();
+  const classDayCount = new Map<Day, number>();
+  for (const e of input.existingEntries) {
+    if (e.classId !== classId) continue;
+    const day = e.day as Day;
+    classDayMax.set(day, Math.max(classDayMax.get(day) ?? 0, e.periodNumber));
+    classDayCount.set(day, (classDayCount.get(day) ?? 0) + 1);
+  }
+
   // Salinan kerja entries — bertambah tiap kali kita "menempatkan" kandidat,
   // supaya findConflicts() berikutnya melihat penempatan yang baru saja
   // dibuat di iterasi ini juga (tidak boleh menempatkan guru yang sama dua
@@ -165,6 +204,20 @@ export function autoFillClassSchedule(input: {
       // Urutan hari/jam alami tetap dipertahankan di dalam masing-masing
       // kelompok prioritas supaya hasilnya deterministik (bukan acak).
       const candidates = [...teachingSlots].sort((a, b) => {
+        // TIER 0 — frontier: lanjutkan dari jam terakhir yang sudah
+        // terisi hari itu, jangan lompat dan tinggalkan lubang.
+        const frontierA = a.periodNumber === (classDayMax.get(a.day as Day) ?? 0) + 1 ? 0 : 1;
+        const frontierB = b.periodNumber === (classDayMax.get(b.day as Day) ?? 0) + 1 ? 0 : 1;
+        if (frontierA !== frontierB) return frontierA - frontierB;
+
+        // TIER 1 — beban harian: di antara slot yang sama-sama frontier,
+        // hari yang JP-nya masih lebih sedikit didahulukan (minggu terisi
+        // rata, bukan Senin-Rabu penuh dulu baru Kamis-Sabtu).
+        const loadA = classDayCount.get(a.day as Day) ?? 0;
+        const loadB = classDayCount.get(b.day as Day) ?? 0;
+        if (loadA !== loadB) return loadA - loadB;
+
+        // TIER 2/3 — Pemetaan & Persebaran (slider), khusus assignment ini.
         const contA = isContinuity(a) ? 0 : 1;
         const contB = isContinuity(b) ? 0 : 1;
         const newDayA = dayUsage(a.day as Day) === 0 ? 0 : 1;
@@ -237,6 +290,12 @@ export function autoFillClassSchedule(input: {
         const daySet = placedPeriodsByDay.get(slot.day as Day) ?? new Set<number>();
         daySet.add(slot.periodNumber);
         placedPeriodsByDay.set(slot.day as Day, daySet);
+
+        classDayMax.set(
+          slot.day as Day,
+          Math.max(classDayMax.get(slot.day as Day) ?? 0, slot.periodNumber),
+        );
+        classDayCount.set(slot.day as Day, (classDayCount.get(slot.day as Day) ?? 0) + 1);
 
         remaining -= 1;
         filledThisRun += 1;
