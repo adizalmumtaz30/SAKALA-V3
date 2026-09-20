@@ -51,7 +51,7 @@ export function JpProgressPanel({ progress }: { progress: JpProgress[] }) {
                   <span
                     aria-hidden
                     className="h-5 w-[3px] shrink-0 rounded-full"
-                    style={{ backgroundColor: color?.accent ?? "#888" }}
+                    style={{ backgroundColor: color?.accent ?? "var(--color-ink-faint)" }}
                   />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[12px] text-ink">

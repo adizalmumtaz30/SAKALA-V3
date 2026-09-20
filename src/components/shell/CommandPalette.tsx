@@ -187,7 +187,7 @@ export function CommandPalette({ items }: { items: CommandItem[] }) {
                     className="h-1.5 w-1.5 shrink-0 rounded-full"
                     style={{
                       backgroundColor:
-                        item.accentColor ?? "var(--color-hairline-strong, #555)",
+                        item.accentColor ?? "var(--color-hairline-strong)",
                     }}
                   />
                   <span className="min-w-0 flex-1 truncate text-[13.5px]">

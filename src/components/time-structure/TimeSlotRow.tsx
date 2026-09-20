@@ -7,6 +7,7 @@ import {
 } from "@/lib/application/time-structure.actions";
 import { useToast } from "@/components/ui/Toast";
 import { Save } from "lucide-react";
+import { Select } from "@/components/ui/Select";
 import type { TimeSlot, TimeSlotType } from "@/lib/domain/time-structure";
 
 const TYPE_LABEL: Record<TimeSlotType, string> = {
@@ -15,6 +16,8 @@ const TYPE_LABEL: Record<TimeSlotType, string> = {
   istirahat: "Istirahat",
   nonaktif: "Non-Aktif",
 };
+
+const TYPE_OPTIONS = Object.entries(TYPE_LABEL).map(([value, label]) => ({ value, label }));
 
 /** Perlakuan visual berbeda per jenis slot (Bagian E.1.5 poin 5). */
 const TYPE_ACCENT: Record<TimeSlotType, string> = {
@@ -83,18 +86,16 @@ export function TimeSlotRow({ slot }: { slot: TimeSlot }) {
 
       <form action={updateTimeSlotAction} className="flex flex-1 items-center gap-3">
         <input type="hidden" name="id" value={slot.id} />
-        <select
+
+        {/* Select Radix (name="type") -- render native <select> tersembunyi
+            sendiri di baliknya utk ikut FormData saat submit, jadi tidak
+            perlu <select> bayangan manual. */}
+        <Select
           name="type"
           value={type}
-          onChange={(e) => setType(e.target.value as TimeSlotType)}
-          className="rounded-lg border border-hairline-strong bg-surface px-2.5 py-1.5 text-[12.5px] text-ink outline-none focus:border-accent-teal"
-        >
-          {Object.entries(TYPE_LABEL).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
+          onValueChange={(v) => setType(v as TimeSlotType)}
+          options={TYPE_OPTIONS}
+        />
 
         {type === "kegiatan" && (
           <input

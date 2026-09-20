@@ -133,7 +133,7 @@ export function SlotEditor({
                     <span
                       aria-hidden
                       className="mt-1 h-8 w-[3px] shrink-0 rounded-full"
-                      style={{ backgroundColor: color?.accent ?? "#888" }}
+                      style={{ backgroundColor: color?.accent ?? "var(--color-ink-faint)" }}
                     />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[13px] font-medium text-ink">
@@ -288,7 +288,7 @@ export function SlotEditor({
                         <span
                           aria-hidden
                           className="h-5 w-[3px] shrink-0 rounded-full"
-                          style={{ backgroundColor: color?.accent ?? "#888" }}
+                          style={{ backgroundColor: color?.accent ?? "var(--color-ink-faint)" }}
                         />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[12.5px] text-ink">

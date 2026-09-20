@@ -1,7 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { recordAttendanceAction } from "@/lib/application/attendance.actions";
+import { Select } from "@/components/ui/Select";
 import { ATTENDANCE_STATUS_LABEL, type AttendanceStatus } from "@/lib/domain/attendance";
+
+const STATUS_OPTIONS = Object.entries(ATTENDANCE_STATUS_LABEL).map(([value, label]) => ({
+  value,
+  label,
+}));
 
 export function AttendanceRow({
   academicYearId,
@@ -16,6 +23,8 @@ export function AttendanceRow({
   teacherName: string;
   current: { status: AttendanceStatus; note: string | null } | null;
 }) {
+  const [status, setStatus] = useState<AttendanceStatus>(current?.status ?? "hadir");
+
   return (
     <form
       action={recordAttendanceAction}
@@ -29,17 +38,12 @@ export function AttendanceRow({
         {teacherName}
       </span>
 
-      <select
+      <Select
         name="status"
-        defaultValue={current?.status ?? "hadir"}
-        className="rounded-lg border border-hairline-strong bg-surface px-2.5 py-1.5 text-[12.5px] text-ink outline-none focus:border-accent-teal"
-      >
-        {Object.entries(ATTENDANCE_STATUS_LABEL).map(([value, label]) => (
-          <option key={value} value={value}>
-            {label}
-          </option>
-        ))}
-      </select>
+        value={status}
+        onValueChange={(v) => setStatus(v as AttendanceStatus)}
+        options={STATUS_OPTIONS}
+      />
 
       <input
         name="note"
