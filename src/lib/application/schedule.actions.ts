@@ -6,8 +6,14 @@ import {
   listScheduleEntriesForYear,
   createScheduleEntries,
   deleteScheduleEntry,
+  deleteScheduleEntriesForClass,
   moveScheduleEntry,
 } from "@/lib/data-access/schedule";
+import { autoFillClassSchedule } from "@/lib/application/schedule-autofill";
+import { computeDiagnosticIssues } from "@/lib/application/diagnostics";
+import { listTeachers } from "@/lib/data-access/teacher";
+import { listSubjects } from "@/lib/data-access/subject";
+import { listClassesForYear } from "@/lib/data-access/class";
 import { listTeachingAssignmentsForYear } from "@/lib/data-access/teaching-assignment";
 import { listRooms } from "@/lib/data-access/room";
 import { listTimeStructureForYear } from "@/lib/data-access/time-structure";
@@ -349,5 +355,152 @@ export async function moveScheduleEntryAction(
   revalidatePath("/jadwal");
   return {
     success: `Dipindah ke ${DAY_LABEL[slot.day as Day]} jam ke-${slot.periodNumber}.`,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// JADWAL OTOMATIS — mesin isi-otomatis deterministik (bukan AI).
+// Segmented per kelas yang sedang dipilih, sesuai permintaan pemilik produk.
+// ---------------------------------------------------------------------------
+
+export interface AutoFillActionState {
+  error?: string;
+  result?: {
+    classId: string;
+    className: string;
+    mode: "fill-empty" | "full-week";
+    placedCount: number;
+    deletedCount: number;
+    shortfalls: {
+      subjectName: string;
+      teacherName: string;
+      targetJp: number;
+      filledJp: number;
+      remainingJp: number;
+      reason: string;
+    }[];
+    /** Masalah relasional (mis. mapel nonaktif tapi masih dipakai) yang
+     *  relevan untuk kelas ini — dibaca dari diagnostics yang SAMA dengan
+     *  panel "Perlu Dicek" di Beranda, bukan pengecekan kedua yang
+     *  terpisah dan bisa beda hasil. */
+    relatedIssues: { message: string; href: string; actionLabel: string }[];
+  };
+}
+
+export async function autoFillScheduleAction(
+  _prev: AutoFillActionState,
+  formData: FormData,
+): Promise<AutoFillActionState> {
+  const academicYearId = String(formData.get("academicYearId") ?? "");
+  const classId = String(formData.get("classId") ?? "");
+  const mode = String(formData.get("mode") ?? "") as "fill-empty" | "full-week";
+
+  if (!academicYearId || !classId) return { error: "Pilih kelas dulu." };
+  if (mode !== "fill-empty" && mode !== "full-week") {
+    return { error: "Mode Jadwal Otomatis tidak dikenali." };
+  }
+
+  const supabase = await createClient();
+
+  const [assignments, timeSlots, academicYear, teachers, subjects, classes] = await Promise.all([
+    listTeachingAssignmentsForYear(supabase, academicYearId),
+    listTimeStructureForYear(supabase, academicYearId),
+    getAcademicYearById(supabase, academicYearId),
+    listTeachers(supabase),
+    listSubjects(supabase),
+    listClassesForYear(supabase, academicYearId),
+  ]);
+
+  const targetClass = classes.find((c) => c.id === classId);
+  if (!targetClass) return { error: "Kelas tidak ditemukan." };
+
+  let deletedCount = 0;
+  if (mode === "full-week") {
+    deletedCount = await deleteScheduleEntriesForClass(supabase, academicYearId, classId);
+  }
+
+  // Entri terkini SETELAH penghapusan (kalau mode full-week) — dibaca
+  // ulang, bukan dihitung manual dari cache, supaya algoritma auto-fill
+  // selalu bekerja dari kenyataan database yang sesungguhnya.
+  const currentEntries = await listScheduleEntriesForYear(supabase, academicYearId);
+
+  const { placements, shortfalls } = autoFillClassSchedule({
+    classId,
+    assignments,
+    timeSlots,
+    existingEntries: currentEntries,
+    maxConsecutiveJp: academicYear?.maxConsecutiveJp ?? null,
+  });
+
+  // Insert ATOMIK (satu statement) mengikuti pola createScheduleEntries
+  // yang sudah dipakai penempatan manual multi-JP — kalau ada satu baris
+  // yang bentrok (race jarang dengan operator lain), SELURUH batch auto-
+  // fill ini gagal bersama dan operator diminta klik ulang, bukan diam-
+  // diam separuh tersimpan.
+  let placedCount = 0;
+  if (placements.length > 0) {
+    const result = await createScheduleEntries(
+      supabase,
+      placements.map((p) => ({
+        academicYearId,
+        teachingAssignmentId: p.teachingAssignmentId,
+        teacherId: p.teacherId,
+        subjectId: p.subjectId,
+        classId: p.classId,
+        day: p.day,
+        periodNumber: p.periodNumber,
+        roomId: null,
+        source: "auto",
+        locked: false,
+      })),
+    );
+    if (!result.ok) {
+      return {
+        error:
+          "Sebagian jam berubah bersamaan saat Jadwal Otomatis diproses. Coba jalankan lagi.",
+      };
+    }
+    placedCount = placements.length;
+  }
+
+  const allIssues = computeDiagnosticIssues({ teachers, subjects, classes, assignments, timeSlots });
+  const relatedIssues = allIssues.filter((issue) =>
+    issue.message.includes(targetClass.name),
+  );
+
+  await recordHistory(supabase, {
+    academicYearId,
+    entityType: "schedule_entry",
+    entityId: null,
+    action: mode === "full-week" ? "auto_fill_full_week" : "auto_fill_empty",
+    summary:
+      mode === "full-week"
+        ? `Jadwal Otomatis — ${targetClass.name}: ${deletedCount} entri lama dihapus, ${placedCount} pelajaran ditempatkan ulang`
+        : `Jadwal Otomatis — ${targetClass.name}: ${placedCount} slot kosong terisi`,
+  });
+
+  revalidatePath("/jadwal");
+
+  return {
+    result: {
+      classId,
+      className: targetClass.name,
+      mode,
+      placedCount,
+      deletedCount,
+      shortfalls: shortfalls.map((s) => ({
+        subjectName: s.subjectName,
+        teacherName: s.teacherName,
+        targetJp: s.targetJp,
+        filledJp: s.filledJp,
+        remainingJp: s.remainingJp,
+        reason: s.reason,
+      })),
+      relatedIssues: relatedIssues.map((i) => ({
+        message: i.message,
+        href: i.href,
+        actionLabel: i.actionLabel,
+      })),
+    },
   };
 }

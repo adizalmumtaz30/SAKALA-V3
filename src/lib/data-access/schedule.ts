@@ -79,6 +79,10 @@ export interface ScheduleEntryInput {
   day: string;
   periodNumber: number;
   roomId: string | null;
+  /** Default 'manual'/true — operator menempatkan langsung, jadi selalu
+   *  locked sejak dibuat. Jadwal Otomatis meneruskan 'auto'/false. */
+  source?: "manual" | "auto";
+  locked?: boolean;
 }
 
 /**
@@ -102,8 +106,8 @@ export async function createScheduleEntries(
       day: input.day,
       period_number: input.periodNumber,
       room_id: input.roomId,
-      source: "manual",
-      locked: true,
+      source: input.source ?? "manual",
+      locked: input.locked ?? true,
     })),
   );
 
@@ -130,6 +134,28 @@ export async function deleteScheduleEntry(
 ): Promise<void> {
   const { error } = await supabase.from("schedule_entry").delete().eq("id", id);
   if (error) throw error;
+}
+
+/**
+ * Bagian "Jadwal Otomatis" mode b ("Set 1 minggu penuh") — menghapus
+ * SELURUH jadwal kelas ini (apa pun sumbernya, manual maupun auto) sebelum
+ * diisi ulang. Sengaja literal seperti diminta pemilik produk: "menghapus
+ * jadwal yang sudah ada mengganti yang baru" — bukan cuma yang auto.
+ * Dipanggil hanya setelah operator mengonfirmasi lewat dialog destruktif.
+ */
+export async function deleteScheduleEntriesForClass(
+  supabase: SupabaseClient,
+  academicYearId: string,
+  classId: string,
+): Promise<number> {
+  const { data, error } = await supabase
+    .from("schedule_entry")
+    .delete()
+    .eq("academic_year_id", academicYearId)
+    .eq("class_id", classId)
+    .select("id");
+  if (error) throw error;
+  return data?.length ?? 0;
 }
 
 /** Pindah = ganti hari/jam ke-. Dipakai oleh aksi "Pindah jam". */

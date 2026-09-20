@@ -16,6 +16,7 @@ import { JpProgressPanel } from "@/components/schedule/JpProgressPanel";
 import { PerspectiveTabs } from "@/components/schedule/PerspectiveTabs";
 import { EntitySelect } from "@/components/schedule/EntitySelect";
 import { PrintButton } from "@/components/ui/PrintButton";
+import { AutoScheduleButton } from "@/components/schedule/AutoScheduleButton";
 
 type View = "kelas" | "guru" | "mapel" | "ruang";
 
@@ -120,6 +121,16 @@ export default async function JadwalPage({
         description={`Tahun ajaran ${academicYear.label} — klik tanda + pada jam mana pun untuk memasukkan pelajaran.`}
         action={
           <div className="flex items-center gap-2">
+            {/* Segmented ke kelas yang sedang dipilih — cuma tampil di
+                perspektif Kelas dengan kelas terpilih (permintaan pemilik
+                produk: "berlaku segmented kelas yang sedang dipilih"). */}
+            {view === "kelas" && selectedId && selectedName && (
+              <AutoScheduleButton
+                academicYearId={academicYear.id}
+                classId={selectedId}
+                className={selectedName}
+              />
+            )}
             <PrintButton label="Cetak Jadwal" />
             <Link
               href="/jadwal/struktur-waktu"
