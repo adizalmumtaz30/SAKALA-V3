@@ -1,4 +1,4 @@
-import type { ScheduleState, OptimizationResult, ScheduleCandidate } from "@/lib/scheduling/types/schedule-state";
+import type { ScheduleState, OptimizationResult, ScheduleCandidate, ObjectiveVector } from "@/lib/scheduling/types/schedule-state";
 import { applyCandidate } from "./apply-candidate";
 import { generateMoveCandidates, generateSwapCandidates } from "./generate-candidates";
 import { scoreSchedule, compareObjective } from "./score-schedule";
