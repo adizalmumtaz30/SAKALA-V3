@@ -20,7 +20,8 @@ export function AppShell({
 }: AppShellProps) {
   return (
     <div className="flex h-dvh bg-canvas">
-      <Sidebar />\n      <MobileSidebar />
+      <Sidebar />
+      <MobileSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar school={school} academicYear={academicYear} academicYears={academicYears} />
         <main className="relative flex-1 overflow-y-auto">
