@@ -92,7 +92,8 @@ function findRelocationChain(
 
   return null;
 }
-\nexport function optimizeSchedule(
+
+export function optimizeSchedule(
   initialState: ScheduleState,
   options: { maxIterations?: number } = {},
 ): OptimizationResult {
