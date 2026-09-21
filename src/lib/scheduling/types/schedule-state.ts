@@ -2,6 +2,8 @@ import type { ScheduleEntry } from "@/lib/domain/schedule";
 import type { TeachingAssignment } from "@/lib/domain/teaching-assignment";
 import type { Day, TimeSlot } from "@/lib/domain/time-structure";
 
+export type SpreadPreference = "concentrated" | "balanced" | "spread";
+
 export type ScheduleScope =
   | { type: "class"; classId: string }
   | { type: "full-week"; classId: string };
@@ -19,6 +21,7 @@ export interface ScheduleState {
   scope: ScheduleScope;
   /** Only entries created by the current optimizer run may be mutated. */
   mutableEntryIds: ReadonlySet<string>;
+  spreadPreference: SpreadPreference;
 }
 
 export type ObjectiveVector = [
