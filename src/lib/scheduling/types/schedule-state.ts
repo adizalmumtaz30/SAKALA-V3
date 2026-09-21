@@ -17,6 +17,8 @@ export interface ScheduleState {
   timeSlots: TimeSlot[];
   maxConsecutiveJp: number | null;
   scope: ScheduleScope;
+  /** Only entries created by the current optimizer run may be mutated. */
+  mutableEntryIds: ReadonlySet<string>;
 }
 
 export type ObjectiveVector = [
