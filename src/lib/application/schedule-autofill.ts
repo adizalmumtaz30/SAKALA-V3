@@ -393,5 +393,109 @@ export function autoFillClassSchedule(input: {
     }
   }
 
+  // REPAIR PASS — rapikan lubang internal setelah greedy selesai tanpa
+  // mengubah entri existing/manual/locked. Hard constraint tetap divalidasi
+  // ulang melalui findConflicts() setelah sumber dipindahkan.
+  const autoPlacementKeys = new Set(
+    placements.map((p) => `${p.day}__${p.periodNumber}__${p.teachingAssignmentId}`),
+  );
+
+  const isPendingAuto = (entry: ScheduleEntry) =>
+    entry.id.startsWith("pending-") &&
+    autoPlacementKeys.has(`${entry.day}__${entry.periodNumber}__${entry.teachingAssignmentId}`);
+
+  const activeSlotsByDay = new Map<Day, TimeSlot[]>();
+  for (const slot of teachingSlots) {
+    const list = activeSlotsByDay.get(slot.day as Day) ?? [];
+    list.push(slot);
+    activeSlotsByDay.set(slot.day as Day, list);
+  }
+
+  const getInternalGaps = (day: Day) => {
+    const occupied = new Set(
+      workingEntries
+        .filter((e) => e.classId === classId && e.day === day)
+        .map((e) => e.periodNumber),
+    );
+    if (occupied.size < 2) return [] as TimeSlot[];
+    const first = Math.min(...occupied);
+    const last = Math.max(...occupied);
+    return (activeSlotsByDay.get(day) ?? []).filter(
+      (slot) =>
+        slot.periodNumber > first &&
+        slot.periodNumber < last &&
+        !occupied.has(slot.periodNumber),
+    );
+  };
+
+  const maxRepairIterations = Math.max(50, placements.length * 4);
+  let repairIteration = 0;
+  let repaired = true;
+
+  while (repaired && repairIteration < maxRepairIterations) {
+    repaired = false;
+    repairIteration += 1;
+
+    for (const day of DAYS as Day[]) {
+      const gaps = getInternalGaps(day);
+      if (gaps.length === 0) continue;
+
+      const dayPending = workingEntries
+        .filter((e) => e.classId === classId && e.day === day && isPendingAuto(e))
+        .sort((a, b) => b.periodNumber - a.periodNumber);
+
+      let moved = false;
+      for (const gap of gaps) {
+        for (const source of dayPending) {
+          if (source.periodNumber <= gap.periodNumber) continue;
+
+          const withoutSource = workingEntries.filter((e) => e.id !== source.id);
+          const conflicts = findConflicts(
+            {
+              day: gap.day,
+              periodNumber: gap.periodNumber,
+              teacherId: source.teacherId,
+              teacherName: source.teacherName,
+              classId: source.classId,
+              className: source.className,
+              roomId: source.roomId,
+              roomName: source.roomName,
+            },
+            withoutSource,
+            maxConsecutiveJp,
+          );
+          if (conflicts.length > 0) continue;
+
+          const oldKey = `${source.day}__${source.periodNumber}__${source.teachingAssignmentId}`;
+          const newKey = `${gap.day}__${gap.periodNumber}__${source.teachingAssignmentId}`;
+          const sourceIndex = workingEntries.indexOf(source);
+          workingEntries.splice(sourceIndex, 1, {
+            ...source,
+            day: gap.day,
+            periodNumber: gap.periodNumber,
+          });
+
+          const placement = placements.find(
+            (p) =>
+              `${p.day}__${p.periodNumber}__${p.teachingAssignmentId}` === oldKey,
+          );
+          if (placement) {
+            placement.day = gap.day;
+            placement.periodNumber = gap.periodNumber;
+          }
+
+          autoPlacementKeys.delete(oldKey);
+          autoPlacementKeys.add(newKey);
+          moved = true;
+          repaired = true;
+          break;
+        }
+        if (moved) break;
+      }
+
+      if (moved) break;
+    }
+  }
+
   return { placements, shortfalls };
 }
