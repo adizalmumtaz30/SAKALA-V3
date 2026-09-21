@@ -386,7 +386,7 @@ export function MobileSidebar() {
                       );
                     })}
                   </div>
-                  {section.label === null && pathname.startsWith("/jadwal") && (
+                  {section.items === OPERATIONAL_ITEMS && pathname.startsWith("/jadwal") && (
                     <div className="ml-[26px] mt-1 space-y-0.5 border-l border-hairline pl-3">
                       {JADWAL_SUBMENU.map((sub) => (
                         <Link
