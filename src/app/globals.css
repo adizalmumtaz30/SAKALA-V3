@@ -209,6 +209,54 @@ body {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+
+/* ============================================================
+   PHASE 2 — CORE INTERACTION CONTRACT
+   ============================================================ */
+:root {
+  --control-height-sm: 32px;
+  --control-height-md: 36px;
+  --control-height-lg: 40px;
+  --control-radius: 9px;
+  --control-transition: 150ms;
+  --focus-ring: color-mix(in srgb, var(--accent-teal) 65%, transparent);
+}
+
+.sakala-control {
+  min-height: var(--control-height-md);
+  border: 1px solid var(--hairline-strong);
+  border-radius: var(--control-radius);
+  background: var(--surface);
+  color: var(--ink);
+  transition: background-color var(--control-transition), border-color var(--control-transition), color var(--control-transition), opacity var(--control-transition);
+}
+
+.sakala-control:focus-visible,
+.sakala-focus-ring:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.sakala-control:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+.sakala-overlay-surface {
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface-overlay);
+  box-shadow: 0 18px 50px rgba(0,0,0,.28);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
+
 /* ============================================================
    LAPISAN CETAK (Bagian F.7)
    ------------------------------------------------------------
