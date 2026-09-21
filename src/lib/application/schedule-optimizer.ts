@@ -270,7 +270,7 @@ function validateOperation(
 
 function candidateMoves(state: ScheduleState, movableIds: Set<string>) {
   const slots = [...activeSlotsByDay(state.timeSlots).entries()].flatMap(([, values]) => values);
-  const occupied = new Set(state.entries.map((e) => `${e.day}__${e.periodNumber}`));
+  const occupied = new Set(\n    state.entries\n      .filter((e) => e.classId === state.classId)\n      .map((e) => `${e.day}__${e.periodNumber}`),\n  );
   const result: OptimizationOperation[] = [];
   for (const entry of state.entries) {
     if (entry.classId !== state.classId || isProtected(entry, movableIds)) continue;
