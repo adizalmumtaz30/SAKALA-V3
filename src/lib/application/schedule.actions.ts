@@ -428,7 +428,7 @@ export async function autoFillScheduleAction(
   // selalu bekerja dari kenyataan database yang sesungguhnya.
   const currentEntries = await listScheduleEntriesForYear(supabase, academicYearId);
 
-  const { placements, shortfalls } = autoFillClassSchedule({
+  const { placements, shortfalls, optimization } = autoFillClassSchedule({
     classId,
     assignments,
     timeSlots,
