@@ -428,7 +428,7 @@ export async function autoFillScheduleAction(
   // selalu bekerja dari kenyataan database yang sesungguhnya.
   const currentEntries = await listScheduleEntriesForYear(supabase, academicYearId);
 
-  const { placements, shortfalls } = autoFillClassSchedule({
+  const { placements, shortfalls, movedExistingEntries } = autoFillClassSchedule({
     classId,
     assignments,
     timeSlots,
@@ -436,6 +436,20 @@ export async function autoFillScheduleAction(
     maxConsecutiveJp: academicYear?.maxConsecutiveJp ?? null,
     spreadPreference,
   });
+
+  // Persist repositioning produced by the global full-week optimizer first.
+  // This is intentionally separate from inserting new placements because the
+  // moved rows already exist in the database.
+  if (movedExistingEntries.length > 0) {
+    await applySchedulePositionUpdates(
+      supabase,
+      movedExistingEntries.map((entry) => ({
+        id: entry.id,
+        day: entry.day,
+        periodNumber: entry.periodNumber,
+      })),
+    );
+  }
 
   // Insert ATOMIK (satu statement) mengikuti pola createScheduleEntries
   // yang sudah dipakai penempatan manual multi-JP — kalau ada satu baris
