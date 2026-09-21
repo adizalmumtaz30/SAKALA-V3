@@ -23,14 +23,16 @@ export function AppShell({
       <Sidebar />
       <MobileSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar school={school} academicYear={academicYear} academicYears={academicYears} />
-        <main className="relative flex-1 overflow-y-auto">
-          {/* Area teks: opasitas 4.5% — motif kalah prioritas dari
-              keterbacaan (Bagian E.1.7, syarat mutlak). */}
+        <TopBar
+          school={school}
+          academicYear={academicYear}
+          academicYears={academicYears}
+        />
+        <main className="relative min-h-0 flex-1 overflow-y-auto">
           <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden">
             <MegaMendung variant="content" />
           </div>
-          <div className="relative">{children}</div>
+          <div className="relative min-h-full">{children}</div>
         </main>
       </div>
     </div>
