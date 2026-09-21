@@ -3,6 +3,7 @@ import type { ScheduleEntry } from "@/lib/domain/schedule";
 import type { TeachingAssignment } from "@/lib/domain/teaching-assignment";
 import type { TimeSlot, Day } from "@/lib/domain/time-structure";
 import { DAYS } from "@/lib/domain/time-structure";
+import { optimizeSchedule } from "@/lib/application/schedule-optimizer";
 
 /**
  * JADWAL OTOMATIS — mesin isi-otomatis deterministik, BUKAN AI.
@@ -393,108 +394,31 @@ export function autoFillClassSchedule(input: {
     }
   }
 
-  // REPAIR PASS — optimasi global ringan setelah greedy selesai.
-  // Versi ini mempertimbangkan perpindahan lintas hari. Sebuah gap dapat
-  // muncul karena guru pemilik slot hanya valid di hari lain, sehingga
-  // repair satu-hari tidak cukup. Hanya hasil auto-run ini yang boleh
-  // dipindahkan; existing/manual/locked tetap dilindungi.
-  const autoPlacementKeys = new Set(
-    placements.map((p) => p.day + "__" + p.periodNumber + "__" + p.teachingAssignmentId),
+  // OPTIMIZER — setelah greedy menghasilkan solusi feasible, lakukan
+  // perbaikan berbasis objective secara deterministik. Optimizer tidak
+  // mengubah manual/locked/existing entries; hanya placement AUTO dari run
+  // ini yang menjadi movable. Move + swap dievaluasi terhadap state yang
+  // sama dan tetap melewati findConflicts() sebagai hard constraint.
+  const movableEntryIds = new Set(
+    placements.map((_, index) => `pending-${index + 1}`),
   );
 
-  const isPendingAuto = (entry: ScheduleEntry) =>
-    entry.id.startsWith("pending-") &&
-    autoPlacementKeys.has(entry.day + "__" + entry.periodNumber + "__" + entry.teachingAssignmentId);
+  const optimization = optimizeSchedule({
+    state: {
+      entries: workingEntries,
+      assignments: input.assignments,
+      timeSlots,
+      classId,
+      maxConsecutiveJp,
+    },
+    movableEntryIds,
+    placements,
+    maxIterations: Math.max(200, placements.length * 12),
+  });
 
-  const activeSlotsByDay = new Map<Day, TimeSlot[]>();
-  for (const slot of teachingSlots) {
-    const list = activeSlotsByDay.get(slot.day as Day) ?? [];
-    list.push(slot);
-    activeSlotsByDay.set(slot.day as Day, list);
-  }
-
-  const internalGapsForEntries = (entries: ScheduleEntry[]) => {
-    let total = 0;
-    const gaps: { day: Day; slot: TimeSlot }[] = [];
-    for (const day of DAYS as Day[]) {
-      const occupied = new Set(
-        entries.filter((e) => e.classId === classId && e.day === day).map((e) => e.periodNumber),
-      );
-      if (occupied.size < 2) continue;
-      const first = Math.min(...occupied);
-      const last = Math.max(...occupied);
-      for (const slot of activeSlotsByDay.get(day) ?? []) {
-        if (slot.periodNumber > first && slot.periodNumber < last && !occupied.has(slot.periodNumber)) {
-          total += 1;
-          gaps.push({ day, slot });
-        }
-      }
-    }
-    return { total, gaps };
+  return {
+    placements: optimization.placements,
+    shortfalls,
+    optimization,
   };
-
-  const maxRepairIterations = Math.max(100, placements.length * 6);
-  let repairIteration = 0;
-
-  while (repairIteration < maxRepairIterations) {
-    const before = internalGapsForEntries(workingEntries);
-    if (before.total === 0) break;
-
-    let best: { source: ScheduleEntry; gap: { day: Day; slot: TimeSlot }; afterTotal: number } | undefined;
-    const sources = workingEntries.filter((e) => e.classId === classId && isPendingAuto(e));
-
-    for (const gap of before.gaps) {
-      for (const source of sources) {
-        if (source.day === gap.day && source.periodNumber === gap.slot.periodNumber) continue;
-        if (source.day === gap.day && source.periodNumber < gap.slot.periodNumber) continue;
-
-        const withoutSource = workingEntries.filter((e) => e.id !== source.id);
-        const conflicts = findConflicts(
-          {
-            day: gap.day,
-            periodNumber: gap.slot.periodNumber,
-            teacherId: source.teacherId,
-            teacherName: source.teacherName,
-            classId: source.classId,
-            className: source.className,
-            roomId: source.roomId,
-            roomName: source.roomName,
-          },
-          withoutSource,
-          maxConsecutiveJp,
-        );
-        if (conflicts.length > 0) continue;
-
-        const simulated = [...withoutSource, { ...source, day: gap.day, periodNumber: gap.slot.periodNumber }];
-        const afterTotal = internalGapsForEntries(simulated).total;
-        if (afterTotal >= before.total) continue;
-
-        if (!best || afterTotal < best.afterTotal ||
-          (afterTotal === best.afterTotal &&
-            (gap.slot.periodNumber < best.gap.slot.periodNumber ||
-              (gap.slot.periodNumber === best.gap.slot.periodNumber && source.periodNumber > best.source.periodNumber)))) {
-          best = { source, gap, afterTotal };
-        }
-      }
-    }
-
-    if (!best) break;
-
-    const oldKey = best.source.day + "__" + best.source.periodNumber + "__" + best.source.teachingAssignmentId;
-    const newKey = best.gap.day + "__" + best.gap.slot.periodNumber + "__" + best.source.teachingAssignmentId;
-    const sourceIndex = workingEntries.indexOf(best.source);
-    workingEntries.splice(sourceIndex, 1, { ...best.source, day: best.gap.day, periodNumber: best.gap.slot.periodNumber });
-
-    const placement = placements.find((p) =>
-      p.day + "__" + p.periodNumber + "__" + p.teachingAssignmentId === oldKey,
-    );
-    if (placement) {
-      placement.day = best.gap.day;
-      placement.periodNumber = best.gap.slot.periodNumber;
-    }
-    autoPlacementKeys.delete(oldKey);
-    autoPlacementKeys.add(newKey);
-    repairIteration += 1;
-  }
-  return { placements, shortfalls };
 }
