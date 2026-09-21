@@ -8,6 +8,7 @@ import {
   deleteScheduleEntry,
   deleteScheduleEntriesForClass,
   moveScheduleEntry,
+  applySchedulePositionUpdates,
 } from "@/lib/data-access/schedule";
 import { autoFillClassSchedule, type SpreadPreference } from "@/lib/application/schedule-autofill";
 import { computeDiagnosticIssues } from "@/lib/application/diagnostics";
