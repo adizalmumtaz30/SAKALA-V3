@@ -30,15 +30,15 @@ function SystemStatus({
 
   return (
     <div className="hidden items-center gap-2 rounded-full border border-hairline bg-surface px-3 py-1.5 md:flex">
-      <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`} />
-      <span className="text-[12px] text-ink-muted">{label}</span>
+      <span className={"h-1.5 w-1.5 rounded-full " + dotClass} />
+      <span className="text-[12px] font-medium text-ink-muted">{label}</span>
     </div>
   );
 }
 
 export function TopBar({ school, academicYear, academicYears }: TopBarProps) {
   return (
-    <header className="relative flex h-16 shrink-0 items-center gap-3 border-b border-hairline bg-canvas px-4 md:gap-6 md:px-6">
+    <header className="relative flex h-16 shrink-0 items-center gap-4 border-b border-hairline bg-canvas px-6">
       <button
         type="button"
         aria-label="Buka navigasi"
@@ -48,47 +48,43 @@ export function TopBar({ school, academicYear, academicYears }: TopBarProps) {
         <Menu size={19} strokeWidth={1.8} />
       </button>
 
-      {/* School Identity */}
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 shrink-0 items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-[9px] border border-hairline-strong bg-surface text-[12px] font-medium text-ink-muted">
           {(school?.shortName ?? school?.schoolName ?? "S").slice(0, 1)}
         </div>
-        <div className="flex flex-col leading-tight">
-          <span className="truncate text-[13px] font-medium text-ink md:max-w-none">
+        <div className="flex min-w-0 flex-col leading-tight">
+          <span className="max-w-[260px] truncate text-[13px] font-medium text-ink">
             {school?.schoolName ?? "Sekolah belum diatur"}
           </span>
-          <span className="text-[10.5px] text-ink-faint">
-            Operator Workspace
-          </span>
+          <span className="text-[11px] text-ink-faint">Operator Workspace</span>
         </div>
       </div>
 
       <div className="hidden h-6 w-px bg-hairline md:block" />
 
-      {/* Academic Year Context */}
-      <div className="hidden md:block">
+      <div className="hidden min-w-0 shrink-0 md:block">
         {school && (
-        <AcademicContextTrigger
-          schoolId={school.id}
-          academicYear={academicYear}
-          academicYears={academicYears}
-        />
+          <AcademicContextTrigger
+            schoolId={school.id}
+            academicYear={academicYear}
+            academicYears={academicYears}
+          />
         )}
       </div>
 
-      {/* Bagian F.3 — pintu masuk Command Palette (Ctrl/Cmd+K). */}
-      <div className="min-w-0 flex flex-1 justify-center md:justify-center">
-        <SearchTrigger />
+      <div className="flex min-w-0 flex-1 justify-center">
+        <div className="w-full max-w-[420px]">
+          <SearchTrigger />
+        </div>
       </div>
 
       <SystemStatus school={school} academicYear={academicYear} />
 
-      {/* Admin Human Identity — placeholder pending Premium Avatar System */}
-      <div className="hidden items-center gap-2 rounded-full border border-hairline bg-surface py-1 pl-1 pr-3 md:flex">
+      <div className="hidden shrink-0 items-center gap-2 rounded-full border border-hairline bg-surface py-1 pl-1 pr-3 md:flex">
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-elevated text-ink-muted">
           <User size={13} strokeWidth={1.75} />
         </div>
-        <span className="text-[12.5px] text-ink-muted">Admin</span>
+        <span className="text-[12px] font-medium text-ink-muted">Admin</span>
       </div>
     </header>
   );
