@@ -31,7 +31,10 @@ begin
     set day = item->>'day',
         period_number = (item->>'periodNumber')::integer,
         updated_at = now()
-    where id = (item->>'id')::uuid;
+    where id = (item->>'id')::uuid
+      and academic_year_id = p_academic_year_id
+      and source = 'auto'
+      and locked = false;
   end loop;
 end;
 $$;
