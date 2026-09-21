@@ -3,8 +3,8 @@ import { scoreSchedule, compareObjective } from "./score-schedule";
 import { findConflicts } from "@/lib/application/schedule-conflict";
 import type { Day } from "@/lib/domain/time-structure";
 
-function movable(entry: ScheduleState["entries"][number]) {
-  return entry.source === "auto" && !entry.locked;
+function movable(state: ScheduleState, entry: ScheduleState["entries"][number]) {
+  return entry.source === "auto" && !entry.locked && state.mutableEntryIds.has(entry.id);
 }
 
 function occupiedAt(state: ScheduleState, day: Day, periodNumber: number, ignoredIds: Set<string> = new Set()) {
@@ -48,7 +48,7 @@ function validEntryAt(state: ScheduleState, entry: ScheduleState["entries"][numb
 export function generateMoveCandidates(state: ScheduleState, options: { onlyImproving?: boolean } = {}): ScheduleCandidate[] {
   const base = scoreSchedule(state);
   const candidates: ScheduleCandidate[] = [];
-  const movableEntries = state.entries.filter((entry) => movable(entry) && entry.classId === state.scope.classId);
+  const movableEntries = state.entries.filter((entry) => movable(state, entry) && entry.classId === state.scope.classId);
   const teachingSlots = state.timeSlots.filter(
     (slot) => slot.status === "active" && slot.type === "mengajar",
   );
