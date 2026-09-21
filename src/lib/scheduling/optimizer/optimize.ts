@@ -105,7 +105,7 @@ function findRelocationChain(
 
 export function optimizeSchedule(
   initialState: ScheduleState,
-  options: { maxIterations?: number } = {},
+  options: { maxIterations?: number; allowInvalidInitialState?: boolean } = {},
 ): OptimizationResult {
   const maxIterations = options.maxIterations ?? Math.max(50, initialState.entries.length * 4);
   let state = initialState;
@@ -115,7 +115,7 @@ export function optimizeSchedule(
   let movesAccepted = 0;
   let swapsAccepted = 0;
 
-  if (objective[0] > 0) {
+  if (objective[0] > 0 && !options.allowInvalidInitialState) {
     return {
       state,
       initialObjective,
