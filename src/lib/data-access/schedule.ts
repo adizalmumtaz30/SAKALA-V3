@@ -206,3 +206,26 @@ export async function applySchedulePositionUpdates(
   });
   if (error) throw error;
 }
+
+
+export async function replaceScheduleForClass(
+  supabase: SupabaseClient,
+  academicYearId: string,
+  classId: string,
+  entries: Array<{
+    teachingAssignmentId: string;
+    teacherId: string;
+    subjectId: string;
+    classId: string;
+    day: string;
+    periodNumber: number;
+  }>,
+): Promise<number> {
+  const { data, error } = await supabase.rpc("replace_schedule_for_class", {
+    p_academic_year_id: academicYearId,
+    p_class_id: classId,
+    p_entries: entries,
+  });
+  if (error) throw error;
+  return Number(data ?? 0);
+}
