@@ -36,6 +36,26 @@
   --status-attention: #f0975a;
   --status-blocked: #f16b62;
 
+  /* Phase 1 foundation geometry */
+  --shell-sidebar-expanded: 248px;
+  --shell-sidebar-collapsed: 68px;
+  --shell-topbar-height: 64px;
+  --page-max-width: 1280px;
+  --page-gutter: 32px;
+  --page-block-start: 40px;
+  --page-block-end: 48px;
+
+  /* Phase 1 spacing rhythm */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+
   color-scheme: dark;
 }
 
@@ -93,6 +113,10 @@
   --font-sans: var(--font-inter);
 }
 
+html {
+  text-rendering: optimizeLegibility;
+}
+
 body {
   background: var(--canvas);
   color: var(--ink);
@@ -101,6 +125,68 @@ body {
 
 * {
   border-color: var(--hairline);
+}
+
+/* ============================================================
+   PHASE 1 — FOUNDATION
+   Semantic classes keep page geometry, typography and surfaces
+   consistent without changing application behavior.
+   ============================================================ */
+
+.sakala-page-container {
+  width: 100%;
+  max-width: var(--page-max-width);
+  margin-inline: auto;
+  padding-inline: var(--page-gutter);
+  padding-block: var(--page-block-start) var(--page-block-end);
+}
+
+.sakala-page-title {
+  font-size: 28px;
+  line-height: 1.18;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+.sakala-page-description {
+  max-width: 68ch;
+  margin-top: var(--space-2);
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-muted);
+}
+
+.sakala-surface {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+}
+
+.sakala-surface-elevated {
+  background: var(--surface-elevated);
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+}
+
+.sakala-focus-ring:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent-teal) 65%, transparent);
+  outline-offset: 2px;
+}
+
+@media (min-width: 768px) {
+  main .mx-auto[class*="max-w-7xl"] {
+    max-width: var(--page-max-width);
+    padding-inline: var(--page-gutter);
+    padding-block: var(--page-block-start) var(--page-block-end);
+  }
+}
+
+@media (max-width: 1023px) {
+  :root {
+    --page-gutter: 24px;
+    --page-block-start: 32px;
+    --page-block-end: 40px;
+  }
 }
 
 /* Context Drawer motion (Bagian 71-72, doc 3 & 10.10.24) — CSS-only so
