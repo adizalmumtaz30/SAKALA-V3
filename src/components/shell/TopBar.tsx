@@ -38,7 +38,7 @@ function SystemStatus({
 
 export function TopBar({ school, academicYear, academicYears }: TopBarProps) {
   return (
-    <header className="relative flex h-16 shrink-0 items-center gap-4 border-b border-hairline bg-canvas px-6">
+    <header className="relative flex h-[var(--shell-topbar-height)] shrink-0 items-center gap-4 border-b border-hairline bg-canvas px-6">
       <button
         type="button"
         aria-label="Buka navigasi"
