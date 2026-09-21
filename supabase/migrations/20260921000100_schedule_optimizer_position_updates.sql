@@ -1,4 +1,4 @@
-create or replace function public.apply_schedule_position_updates(p_updates jsonb)
+create or replace function public.apply_schedule_position_updates(p_academic_year_id uuid, p_updates jsonb)
 returns void
 language plpgsql
 security definer
@@ -19,7 +19,10 @@ begin
     row_no := row_no + 1;
     update public.schedule_entry
     set period_number = 10000 + row_no
-    where id = (item->>'id')::uuid;
+    where id = (item->>'id')::uuid
+      and academic_year_id = p_academic_year_id
+      and source = 'auto'
+      and locked = false;
   end loop;
 
   for item in select * from jsonb_array_elements(p_updates)
@@ -33,5 +36,5 @@ begin
 end;
 $$;
 
-revoke all on function public.apply_schedule_position_updates(jsonb) from public;
-grant execute on function public.apply_schedule_position_updates(jsonb) to service_role;
+revoke all on function public.apply_schedule_position_updates(uuid, jsonb) from public;
+grant execute on function public.apply_schedule_position_updates(uuid, jsonb) to authenticated;
