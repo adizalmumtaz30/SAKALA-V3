@@ -411,21 +411,15 @@ export function autoFillClassSchedule(input: {
 
   // Hanya placement yang memang dibuat oleh run ini yang dipersist.
   // Existing/manual/locked tidak pernah ikut berubah dari optimizer.
-  const optimizedPending = optimized.state.entries.filter(
-    (entry) => entry.id.startsWith("pending-") && entry.classId === classId,
-  );
-  const byPendingId = new Map(optimizedPending.map((entry) => [entry.id, entry]));
-  for (const placement of placements) {
-    const pending = [...byPendingId.values()].find(
-      (entry) => entry.teachingAssignmentId === placement.teachingAssignmentId &&
-        entry.teacherId === placement.teacherId &&
-        entry.subjectId === placement.subjectId,
+  for (let index = 0; index < placements.length; index += 1) {
+    const pending = optimized.state.entries.find(
+      (entry) => entry.id === `pending-${index + 1}`,
     );
-    if (pending) {
-      placement.day = pending.day as Day;
-      placement.periodNumber = pending.periodNumber;
-      byPendingId.delete(pending.id);
+    if (!pending) {
+      throw new Error("Optimizer kehilangan placement auto-run; hasil tidak dipersist.");
     }
+    placements[index].day = pending.day as Day;
+    placements[index].periodNumber = pending.periodNumber;
   }
 
   // Deterministic guard terakhir: hasil yang dikembalikan tidak boleh
