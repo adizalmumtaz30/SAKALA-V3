@@ -3,7 +3,6 @@ import type { ScheduleEntry } from "@/lib/domain/schedule";
 import type { TeachingAssignment } from "@/lib/domain/teaching-assignment";
 import type { TimeSlot, Day } from "@/lib/domain/time-structure";
 import { DAYS } from "@/lib/domain/time-structure";
-import { optimizeSchedule } from "@/lib/scheduling/optimizer";
 
 /**
  * JADWAL OTOMATIS — mesin isi-otomatis deterministik, BUKAN AI.
@@ -395,55 +394,12 @@ export function autoFillClassSchedule(input: {
     }
   }
 
-  // OPTIMIZER FINAL — generator hanya membuat solusi awal. Setelah itu
-  // seluruh hasil auto-run masuk ke ScheduleState dan diproses oleh kontrak
-  // ObjectiveVector -> Move/Swap -> Constraint Validation -> Optimizer.
-  // Existing/manual/locked entries tetap berada di state sebagai constraint.
-  const optimized = optimizeSchedule(
-    {
-      entries: workingEntries,
-      assignments: input.assignments,
-      timeSlots,
-      maxConsecutiveJp,
-      scope: { type: "full-week", classId },
-      mutableEntryIds: new Set(
-        workingEntries
-          .filter((entry) => (entry.id.startsWith("pending-") || (entry.source === "auto" && !entry.locked)))
-          .map((entry) => entry.id),
-      ),
-      spreadPreference,
-    },
-    { maxIterations: Math.max(100, placements.length * 8), allowInvalidInitialState: true },
-  );
-
-  const movedExistingEntries = optimized.state.entries.filter((entry) => {
-    const original = input.existingEntries.find((item) => item.id === entry.id);
-    return original && (original.day !== entry.day || original.periodNumber !== entry.periodNumber);
-  });
-
-  // Hanya placement yang memang dibuat oleh run ini yang dipersist.
-  // Existing/manual/locked tidak pernah ikut berubah dari optimizer.
-  for (let index = 0; index < placements.length; index += 1) {
-    const pending = optimized.state.entries.find(
-      (entry) => entry.id === `pending-${index + 1}`,
-    );
-    if (!pending) {
-      throw new Error("Optimizer kehilangan placement auto-run; hasil tidak dipersist.");
-    }
-    placements[index].day = pending.day as Day;
-    placements[index].periodNumber = pending.periodNumber;
-  }
-
-  // Deterministic guard terakhir: hasil yang dikembalikan tidak boleh
-  // mengandung dua placement pada posisi kelas yang sama.
-  const seenPositions = new Set<string>();
-  for (const placement of placements) {
-    const key = placement.day + "__" + placement.periodNumber;
-    if (seenPositions.has(key)) {
-      throw new Error("Optimizer menghasilkan posisi kelas ganda; hasil tidak dipersist.");
-    }
-    seenPositions.add(key);
-  }
+  // Generator ini sengaja tetap cepat dan deterministik. Validasi keras
+  // sudah dilakukan per placement dengan findConflicts(); tidak ada pass
+  // optimizer mahal setelah semua JP ditempatkan. Optimizer lama menyebabkan
+  // kombinasi Move/Swap/lookahead/relocation-chain meledak secara kuadratik
+  // dan bisa ikut menyentuh entri auto kelas lain.
+  const movedExistingEntries: ScheduleEntry[] = [];
 
   return { placements, shortfalls, movedExistingEntries };
 }

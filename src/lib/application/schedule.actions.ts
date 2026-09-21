@@ -5,10 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import {
   listScheduleEntriesForYear,
   createScheduleEntries,
+  replaceScheduleForClass,
   deleteScheduleEntry,
-  deleteScheduleEntriesForClass,
   moveScheduleEntry,
-  applySchedulePositionUpdates,
 } from "@/lib/data-access/schedule";
 import { autoFillClassSchedule, type SpreadPreference } from "@/lib/application/schedule-autofill";
 import { computeDiagnosticIssues } from "@/lib/application/diagnostics";
@@ -419,47 +418,45 @@ export async function autoFillScheduleAction(
   const targetClass = classes.find((c) => c.id === classId);
   if (!targetClass) return { error: "Kelas tidak ditemukan." };
 
-  let deletedCount = 0;
-  if (mode === "full-week") {
-    deletedCount = await deleteScheduleEntriesForClass(supabase, academicYearId, classId);
-  }
-
-  // Entri terkini SETELAH penghapusan (kalau mode full-week) — dibaca
-  // ulang, bukan dihitung manual dari cache, supaya algoritma auto-fill
-  // selalu bekerja dari kenyataan database yang sesungguhnya.
+  // Baca sekali untuk membuat rencana. Pada mode full-week, entri lama
+  // kelas target HANYA dikeluarkan dari memori perencanaan — belum dihapus
+  // dari database. Jadi generator gagal tidak akan menghilangkan jadwal lama.
   const currentEntries = await listScheduleEntriesForYear(supabase, academicYearId);
+  const deletedCount = mode === "full-week"
+    ? currentEntries.filter((entry) => entry.classId === classId).length
+    : 0;
+  const planningEntries = mode === "full-week"
+    ? currentEntries.filter((entry) => entry.classId !== classId)
+    : currentEntries;
 
-  const { placements, shortfalls, movedExistingEntries } = autoFillClassSchedule({
+  const { placements, shortfalls } = autoFillClassSchedule({
     classId,
     assignments,
     timeSlots,
-    existingEntries: currentEntries,
+    existingEntries: planningEntries,
     maxConsecutiveJp: academicYear?.maxConsecutiveJp ?? null,
     spreadPreference,
   });
 
-  // Persist repositioning produced by the global full-week optimizer first.
-  // This is intentionally separate from inserting new placements because the
-  // moved rows already exist in the database.
-  if (movedExistingEntries.length > 0) {
-    await applySchedulePositionUpdates(
-      supabase,
-      movedExistingEntries.map((entry) => ({
-        id: entry.id,
-        day: entry.day,
-        periodNumber: entry.periodNumber,
-      })),
-      academicYearId,
-    );
-  }
-
-  // Insert ATOMIK (satu statement) mengikuti pola createScheduleEntries
-  // yang sudah dipakai penempatan manual multi-JP — kalau ada satu baris
-  // yang bentrok (race jarang dengan operator lain), SELURUH batch auto-
-  // fill ini gagal bersama dan operator diminta klik ulang, bukan diam-
-  // diam separuh tersimpan.
+  // Full-week diganti DALAM SATU TRANSAKSI database. Jika INSERT gagal
+  // karena bentrok/race/constraint, DELETE ikut rollback sehingga jadwal
+  // lama tetap utuh. Mode fill-empty tetap hanya menambah slot baru.
   let placedCount = 0;
-  if (placements.length > 0) {
+  if (mode === "full-week") {
+    placedCount = await replaceScheduleForClass(
+      supabase,
+      academicYearId,
+      classId,
+      placements.map((p) => ({
+        teachingAssignmentId: p.teachingAssignmentId,
+        teacherId: p.teacherId,
+        subjectId: p.subjectId,
+        classId: p.classId,
+        day: p.day,
+        periodNumber: p.periodNumber,
+      })),
+    );
+  } else if (placements.length > 0) {
     const result = await createScheduleEntries(
       supabase,
       placements.map((p) => ({
