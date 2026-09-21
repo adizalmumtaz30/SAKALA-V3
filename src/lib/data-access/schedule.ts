@@ -197,9 +197,11 @@ export interface SchedulePositionUpdate {
 export async function applySchedulePositionUpdates(
   supabase: SupabaseClient,
   updates: SchedulePositionUpdate[],
+  academicYearId: string,
 ): Promise<void> {
   if (updates.length === 0) return;
   const { error } = await supabase.rpc("apply_schedule_position_updates", {
+    p_academic_year_id: academicYearId,
     p_updates: updates,
   });
   if (error) throw error;
