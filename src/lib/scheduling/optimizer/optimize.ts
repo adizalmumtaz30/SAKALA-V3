@@ -70,7 +70,6 @@ function findRelocationChain(
   const blockers = blockersAt(state, entry, to).filter((item) => chainAllowedEntry(state, item));
   if (blockers.length === 0) return null;
 
-  const blocked = blockers[0];
   const nextVisiting = new Set(visiting);
   nextVisiting.add(entry.id);
 
@@ -78,16 +77,27 @@ function findRelocationChain(
     .filter((slot) => slot.status === "active" && slot.type === "mengajar")
     .sort((a, b) => a.periodNumber - b.periodNumber || String(a.day).localeCompare(String(b.day)));
 
-  for (const slot of slots) {
-    if (slot.day === blocked.day && slot.periodNumber === blocked.periodNumber) continue;
-    const blockerMove = findRelocationChain(state, blocked.id, { day: slot.day as Day, periodNumber: slot.periodNumber }, depth - 1, nextVisiting);
-    if (!blockerMove) continue;
+  // A target slot can be blocked by more than one hard constraint at once
+  // (for example, class + teacher). Try every movable blocker instead of
+  // assuming the first row is the only useful chain.
+  for (const blocked of blockers) {
+    for (const slot of slots) {
+      if (slot.day === blocked.day && slot.periodNumber === blocked.periodNumber) continue;
+      const blockerMove = findRelocationChain(
+        state,
+        blocked.id,
+        { day: slot.day as Day, periodNumber: slot.periodNumber },
+        depth - 1,
+        nextVisiting,
+      );
+      if (!blockerMove) continue;
 
-    let intermediate = state;
-    for (const move of blockerMove) intermediate = applyCandidate(intermediate, move);
-    const finalMove = directMove(intermediate, entry, to);
-    if (!finalMove) continue;
-    return [...blockerMove, finalMove];
+      let intermediate = state;
+      for (const move of blockerMove) intermediate = applyCandidate(intermediate, move);
+      const finalMove = directMove(intermediate, entry, to);
+      if (!finalMove) continue;
+      return [...blockerMove, finalMove];
+    }
   }
 
   return null;
@@ -152,14 +162,31 @@ export function optimizeSchedule(
       // relocate the blocker (bounded depth) and then place the target entry
       // into the gap. This keeps the public contracts Move/Swap while allowing
       // a deterministic multi-move solution internally.
-      const gaps = state.entries
-        .filter((entry) => entry.classId === state.scope.classId)
-        .flatMap((entry) => {
-          const slots = state.timeSlots.filter((slot) => slot.status === "active" && slot.type === "mengajar" && slot.day === entry.day);
-          return slots.filter((slot) => slot.periodNumber > 0 && slot.periodNumber < entry.periodNumber)
-            .filter((slot) => !state.entries.some((item) => item.classId === state.scope.classId && item.day === slot.day && item.periodNumber === slot.periodNumber))
-            .map((slot) => ({ day: slot.day as Day, periodNumber: slot.periodNumber }));
-        });
+      const gaps = Array.from(
+        new Set(
+          state.entries
+            .filter((entry) => entry.classId === state.scope.classId)
+            .flatMap((entry) => {
+              const classPeriods = state.entries
+                .filter((item) => item.classId === state.scope.classId && item.day === entry.day)
+                .map((item) => item.periodNumber);
+              if (classPeriods.length < 2) return [];
+              const first = Math.min(...classPeriods);
+              const last = Math.max(...classPeriods);
+              return state.timeSlots
+                .filter(
+                  (slot) =>
+                    slot.status === "active" &&
+                    slot.type === "mengajar" &&
+                    slot.day === entry.day &&
+                    slot.periodNumber > first &&
+                    slot.periodNumber < last &&
+                    !classPeriods.includes(slot.periodNumber),
+                )
+                .map((slot) => JSON.stringify({ day: slot.day as Day, periodNumber: slot.periodNumber }));
+            }),
+        ),
+      ).map((value) => JSON.parse(value) as SlotPosition);
 
       let bestChain: MoveChain | null = null;
       let bestChainObjective = objective;
