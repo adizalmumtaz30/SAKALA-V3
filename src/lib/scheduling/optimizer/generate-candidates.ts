@@ -48,7 +48,7 @@ function validEntryAt(state: ScheduleState, entry: ScheduleState["entries"][numb
 export function generateMoveCandidates(state: ScheduleState, options: { onlyImproving?: boolean } = {}): ScheduleCandidate[] {
   const base = scoreSchedule(state);
   const candidates: ScheduleCandidate[] = [];
-  const movableEntries = state.entries.filter((entry) => movable(state, entry) && (state.scope.type === "full-week" || entry.classId === state.scope.classId));
+  const movableEntries = state.entries.filter((entry) => movable(state, entry) && entry.classId === state.scope.classId);
   const teachingSlots = state.timeSlots.filter(
     (slot) => slot.status === "active" && slot.type === "mengajar",
   );
