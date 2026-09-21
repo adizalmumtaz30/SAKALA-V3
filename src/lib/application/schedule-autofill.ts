@@ -3,6 +3,7 @@ import type { ScheduleEntry } from "@/lib/domain/schedule";
 import type { TeachingAssignment } from "@/lib/domain/teaching-assignment";
 import type { TimeSlot, Day } from "@/lib/domain/time-structure";
 import { DAYS } from "@/lib/domain/time-structure";
+import { optimizeSchedule } from "@/lib/scheduling/optimizer";
 
 /**
  * JADWAL OTOMATIS — mesin isi-otomatis deterministik, BUKAN AI.
@@ -393,108 +394,46 @@ export function autoFillClassSchedule(input: {
     }
   }
 
-  // REPAIR PASS — optimasi global ringan setelah greedy selesai.
-  // Versi ini mempertimbangkan perpindahan lintas hari. Sebuah gap dapat
-  // muncul karena guru pemilik slot hanya valid di hari lain, sehingga
-  // repair satu-hari tidak cukup. Hanya hasil auto-run ini yang boleh
-  // dipindahkan; existing/manual/locked tetap dilindungi.
-  const autoPlacementKeys = new Set(
-    placements.map((p) => p.day + "__" + p.periodNumber + "__" + p.teachingAssignmentId),
+  // OPTIMIZER FINAL — generator hanya membuat solusi awal. Setelah itu
+  // seluruh hasil auto-run masuk ke ScheduleState dan diproses oleh kontrak
+  // ObjectiveVector -> Move/Swap -> Constraint Validation -> Optimizer.
+  // Existing/manual/locked entries tetap berada di state sebagai constraint.
+  const optimized = optimizeSchedule(
+    {
+      entries: workingEntries,
+      assignments: input.assignments,
+      timeSlots,
+      maxConsecutiveJp,
+      scope: { type: "class", classId },
+      mutableEntryIds: new Set(placements.map((_, index) => `pending-${index + 1}`)),
+      spreadPreference,
+    },
+    { maxIterations: Math.max(100, placements.length * 8) },
   );
 
-  const isPendingAuto = (entry: ScheduleEntry) =>
-    entry.id.startsWith("pending-") &&
-    autoPlacementKeys.has(entry.day + "__" + entry.periodNumber + "__" + entry.teachingAssignmentId);
-
-  const activeSlotsByDay = new Map<Day, TimeSlot[]>();
-  for (const slot of teachingSlots) {
-    const list = activeSlotsByDay.get(slot.day as Day) ?? [];
-    list.push(slot);
-    activeSlotsByDay.set(slot.day as Day, list);
-  }
-
-  const internalGapsForEntries = (entries: ScheduleEntry[]) => {
-    let total = 0;
-    const gaps: { day: Day; slot: TimeSlot }[] = [];
-    for (const day of DAYS as Day[]) {
-      const occupied = new Set(
-        entries.filter((e) => e.classId === classId && e.day === day).map((e) => e.periodNumber),
-      );
-      if (occupied.size < 2) continue;
-      const first = Math.min(...occupied);
-      const last = Math.max(...occupied);
-      for (const slot of activeSlotsByDay.get(day) ?? []) {
-        if (slot.periodNumber > first && slot.periodNumber < last && !occupied.has(slot.periodNumber)) {
-          total += 1;
-          gaps.push({ day, slot });
-        }
-      }
-    }
-    return { total, gaps };
-  };
-
-  const maxRepairIterations = Math.max(100, placements.length * 6);
-  let repairIteration = 0;
-
-  while (repairIteration < maxRepairIterations) {
-    const before = internalGapsForEntries(workingEntries);
-    if (before.total === 0) break;
-
-    let best: { source: ScheduleEntry; gap: { day: Day; slot: TimeSlot }; afterTotal: number } | undefined;
-    const sources = workingEntries.filter((e) => e.classId === classId && isPendingAuto(e));
-
-    for (const gap of before.gaps) {
-      for (const source of sources) {
-        if (source.day === gap.day && source.periodNumber === gap.slot.periodNumber) continue;
-        if (source.day === gap.day && source.periodNumber < gap.slot.periodNumber) continue;
-
-        const withoutSource = workingEntries.filter((e) => e.id !== source.id);
-        const conflicts = findConflicts(
-          {
-            day: gap.day,
-            periodNumber: gap.slot.periodNumber,
-            teacherId: source.teacherId,
-            teacherName: source.teacherName,
-            classId: source.classId,
-            className: source.className,
-            roomId: source.roomId,
-            roomName: source.roomName,
-          },
-          withoutSource,
-          maxConsecutiveJp,
-        );
-        if (conflicts.length > 0) continue;
-
-        const simulated = [...withoutSource, { ...source, day: gap.day, periodNumber: gap.slot.periodNumber }];
-        const afterTotal = internalGapsForEntries(simulated).total;
-        if (afterTotal >= before.total) continue;
-
-        if (!best || afterTotal < best.afterTotal ||
-          (afterTotal === best.afterTotal &&
-            (gap.slot.periodNumber < best.gap.slot.periodNumber ||
-              (gap.slot.periodNumber === best.gap.slot.periodNumber && source.periodNumber > best.source.periodNumber)))) {
-          best = { source, gap, afterTotal };
-        }
-      }
-    }
-
-    if (!best) break;
-
-    const oldKey = best.source.day + "__" + best.source.periodNumber + "__" + best.source.teachingAssignmentId;
-    const newKey = best.gap.day + "__" + best.gap.slot.periodNumber + "__" + best.source.teachingAssignmentId;
-    const sourceIndex = workingEntries.indexOf(best.source);
-    workingEntries.splice(sourceIndex, 1, { ...best.source, day: best.gap.day, periodNumber: best.gap.slot.periodNumber });
-
-    const placement = placements.find((p) =>
-      p.day + "__" + p.periodNumber + "__" + p.teachingAssignmentId === oldKey,
+  // Hanya placement yang memang dibuat oleh run ini yang dipersist.
+  // Existing/manual/locked tidak pernah ikut berubah dari optimizer.
+  for (let index = 0; index < placements.length; index += 1) {
+    const pending = optimized.state.entries.find(
+      (entry) => entry.id === `pending-${index + 1}`,
     );
-    if (placement) {
-      placement.day = best.gap.day;
-      placement.periodNumber = best.gap.slot.periodNumber;
+    if (!pending) {
+      throw new Error("Optimizer kehilangan placement auto-run; hasil tidak dipersist.");
     }
-    autoPlacementKeys.delete(oldKey);
-    autoPlacementKeys.add(newKey);
-    repairIteration += 1;
+    placements[index].day = pending.day as Day;
+    placements[index].periodNumber = pending.periodNumber;
   }
+
+  // Deterministic guard terakhir: hasil yang dikembalikan tidak boleh
+  // mengandung dua placement pada posisi kelas yang sama.
+  const seenPositions = new Set<string>();
+  for (const placement of placements) {
+    const key = placement.day + "__" + placement.periodNumber;
+    if (seenPositions.has(key)) {
+      throw new Error("Optimizer menghasilkan posisi kelas ganda; hasil tidak dipersist.");
+    }
+    seenPositions.add(key);
+  }
+
   return { placements, shortfalls };
 }
