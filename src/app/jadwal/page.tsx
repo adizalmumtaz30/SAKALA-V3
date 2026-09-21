@@ -136,13 +136,13 @@ export default async function JadwalPage({
   const contextLabel = selectedName ? selectedName : `Belum ada ${emptyNoun} aktif`;
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-10">
+    <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-10">
       <PageHeader
         kicker="JADWAL"
         title={contextLabel}
         description={`Tahun ajaran ${academicYear.label} — klik tanda + pada jam mana pun untuk memasukkan pelajaran.`}
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2 md:w-auto">
             {/* Segmented ke kelas yang sedang dipilih — cuma tampil di
                 perspektif Kelas dengan kelas terpilih (permintaan pemilik
                 produk: "berlaku segmented kelas yang sedang dipilih"). */}
@@ -177,7 +177,7 @@ export default async function JadwalPage({
         </p>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-3" data-print="hide">
+      <div className="mt-5 flex max-w-full flex-wrap items-center gap-3 overflow-x-auto pb-1" data-print="hide">
         <PerspectiveTabs active={view} />
         {entityOptions.length > 0 && (
           <EntitySelect view={view} options={entityOptions} selectedId={selectedId} />
