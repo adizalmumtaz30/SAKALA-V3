@@ -1,4 +1,6 @@
-import type { ScheduleState, OptimizationResult, ScheduleCandidate, ObjectiveVector } from "@/lib/scheduling/types/schedule-state";
+import type { ScheduleState, OptimizationResult, ScheduleCandidate, ObjectiveVector, CandidateMove, SlotPosition } from "@/lib/scheduling/types/schedule-state";
+import { findConflicts } from "@/lib/application/schedule-conflict";
+import type { Day } from "@/lib/domain/time-structure";
 import { applyCandidate } from "./apply-candidate";
 import { generateMoveCandidates, generateSwapCandidates } from "./generate-candidates";
 import { scoreSchedule, compareObjective } from "./score-schedule";
@@ -90,7 +92,8 @@ function findRelocationChain(
 
   return null;
 }
-\nexport function optimizeSchedule(
+
+export function optimizeSchedule(
   initialState: ScheduleState,
   options: { maxIterations?: number } = {},
 ): OptimizationResult {
