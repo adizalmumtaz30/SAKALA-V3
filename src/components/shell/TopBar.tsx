@@ -73,7 +73,8 @@ export function TopBar({ school, academicYear, academicYears }: TopBarProps) {
           academicYear={academicYear}
           academicYears={academicYears}
         />
-      )}
+        )}
+      </div>
 
       {/* Bagian F.3 — pintu masuk Command Palette (Ctrl/Cmd+K). */}
       <div className="min-w-0 flex flex-1 justify-center md:justify-center">
