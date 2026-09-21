@@ -57,7 +57,7 @@ export function TopBar({ school, academicYear, academicYears }: TopBarProps) {
       <div className="hidden h-6 w-px bg-hairline md:block" />
 
       {/* Academic Year Context */}
-      <div className="hidden md:block">\n      {school && (
+      <div className="hidden md:block">\n        {school && (
         <AcademicContextTrigger
           schoolId={school.id}
           academicYear={academicYear}
