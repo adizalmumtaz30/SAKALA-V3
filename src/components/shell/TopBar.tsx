@@ -39,7 +39,16 @@ function SystemStatus({
 export function TopBar({ school, academicYear, academicYears }: TopBarProps) {
   return (
     <header className="relative flex h-16 shrink-0 items-center gap-3 border-b border-hairline bg-canvas px-4 md:gap-6 md:px-6">
-      <button\n        type="button"\n        aria-label="Buka navigasi"\n        className="rounded-lg p-2 text-ink-muted hover:text-ink md:hidden"\n        onClick={() => window.dispatchEvent(new Event("sakala:open-mobile-nav"))}\n      >\n        <Menu size={19} strokeWidth={1.8} />\n      </button>\n\n      {/* School Identity */}
+      <button
+        type="button"
+        aria-label="Buka navigasi"
+        className="rounded-lg p-2 text-ink-muted hover:text-ink md:hidden"
+        onClick={() => window.dispatchEvent(new Event("sakala:open-mobile-nav"))}
+      >
+        <Menu size={19} strokeWidth={1.8} />
+      </button>
+
+      {/* School Identity */}
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-[9px] border border-hairline-strong bg-surface text-[12px] font-medium text-ink-muted">
           {(school?.shortName ?? school?.schoolName ?? "S").slice(0, 1)}
@@ -57,7 +66,8 @@ export function TopBar({ school, academicYear, academicYears }: TopBarProps) {
       <div className="hidden h-6 w-px bg-hairline md:block" />
 
       {/* Academic Year Context */}
-      <div className="hidden md:block">\n        {school && (
+      <div className="hidden md:block">
+        {school && (
         <AcademicContextTrigger
           schoolId={school.id}
           academicYear={academicYear}
