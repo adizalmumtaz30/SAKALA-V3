@@ -45,7 +45,7 @@ function validEntryAt(state: ScheduleState, entry: ScheduleState["entries"][numb
   return conflicts.length === 0;
 }
 
-export function generateMoveCandidates(state: ScheduleState): ScheduleCandidate[] {
+export function generateMoveCandidates(state: ScheduleState, options: { onlyImproving?: boolean } = {}): ScheduleCandidate[] {
   const base = scoreSchedule(state);
   const candidates: ScheduleCandidate[] = [];
   const movableEntries = state.entries.filter((entry) => movable(entry) && entry.classId === state.scope.classId);
@@ -63,7 +63,7 @@ export function generateMoveCandidates(state: ScheduleState): ScheduleCandidate[
       );
       const nextState = { ...state, entries: nextEntries };
       const objective = scoreSchedule(nextState);
-      if (compareObjective(objective, base) < 0) {
+      if (!options.onlyImproving || compareObjective(objective, base) < 0) {
         candidates.push({
           kind: "move",
           entryId: entry.id,
@@ -78,11 +78,11 @@ export function generateMoveCandidates(state: ScheduleState): ScheduleCandidate[
   return candidates;
 }
 
-export function generateSwapCandidates(state: ScheduleState): ScheduleCandidate[] {
+export function generateSwapCandidates(state: ScheduleState, options: { onlyImproving?: boolean } = {}): ScheduleCandidate[] {
   const base = scoreSchedule(state);
   const candidates: ScheduleCandidate[] = [];
   const scopedMovableEntries = state.entries.filter((entry) => movable(entry) && entry.classId === state.scope.classId);
-  const allMovableEntries = state.entries.filter(movable);
+  const allMovableEntries = scopedMovableEntries;
 
   for (let i = 0; i < scopedMovableEntries.length; i += 1) {
     for (let j = 0; j < allMovableEntries.length; j += 1) {
@@ -97,9 +97,9 @@ export function generateSwapCandidates(state: ScheduleState): ScheduleCandidate[
         return entry;
       });
       const nextState = { ...state, entries: nextEntries };
-      if (scoreSchedule(nextState)[0] > 0) continue;
       const objective = scoreSchedule(nextState);
-      if (compareObjective(objective, base) < 0) {
+      if (objective[0] > 0) continue;
+      if (!options.onlyImproving || compareObjective(objective, base) < 0) {
         candidates.push({
           kind: "swap",
           firstEntryId: first.id,
