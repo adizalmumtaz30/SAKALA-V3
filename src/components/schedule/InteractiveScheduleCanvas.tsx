@@ -148,7 +148,63 @@ export function InteractiveScheduleCanvas({
 
   return (
     <>
-      <div className="overflow-x-auto rounded-2xl border border-hairline bg-surface">
+      <div className="space-y-3 md:hidden">
+        {activeDays.map((day) => (
+          <section key={day} className="overflow-hidden rounded-2xl border border-hairline bg-surface">
+            <div className="border-b border-hairline bg-surface-elevated px-4 py-3">
+              <h2 className="text-[13px] font-semibold text-ink">{DAY_LABEL[day]}</h2>
+              <p className="mt-0.5 text-[10.5px] text-ink-faint">Jadwal harian</p>
+            </div>
+            <div className="divide-y divide-hairline">
+              {periodNumbers.map((period) => {
+                const slot = cell(day, period);
+                if (!slot) return null;
+                const slotKey = `${day}__${period}`;
+                const slotEntries = entriesBySlot.get(slotKey) ?? [];
+                const slotStyle = slot.type === "kegiatan" ? KEGIATAN_STYLE : slot.type === "istirahat" ? ISTIRAHAT_STYLE : NONAKTIF_STYLE;
+                return (
+                  <div key={period} className="px-3 py-3">
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <span className="text-[11px] font-medium text-ink-faint">Jam ke-{period}</span>
+                      <span className="text-[10.5px] text-ink-faint">{formatTime(slot.startTime)}–{formatTime(slot.endTime)}</span>
+                    </div>
+                    {slot.type === "mengajar" ? (
+                      slotEntries.length > 0 ? (
+                        <div className="space-y-2">
+                          {slotEntries.map((e) => {
+                            const color = getIdentityColor(e.subjectColorKey);
+                            return (
+                              <button key={e.id} type="button" onClick={() => setOpenSlotId(slot.id)}
+                                className="block w-full rounded-xl border px-3 py-2.5 text-left"
+                                style={{ borderColor: color?.accent ?? undefined, backgroundColor: color ? withAlpha(color.tintDark, 0.26) : undefined, borderLeftWidth: 5 }}>
+                                <p className="truncate text-[13px] font-medium text-ink">{e.subjectName}</p>
+                                <p className="mt-0.5 truncate text-[11.5px] text-ink-muted">{e.className} · {e.teacherName}</p>
+                                {e.roomName && <p className="mt-0.5 truncate text-[10.5px] text-ink-faint">{e.roomName}</p>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <button type="button" onClick={() => setOpenSlotId(slot.id)}
+                          aria-label={`Isi ${DAY_LABEL[day]} jam ke-${period}`}
+                          className="flex min-h-12 w-full items-center justify-between rounded-xl border border-dashed border-hairline-strong px-3 text-[11px] text-ink-faint hover:border-accent-teal hover:text-accent-teal">
+                          <span>Slot kosong</span><Plus size={15} strokeWidth={2} />
+                        </button>
+                      )
+                    ) : (
+                      <div className={`rounded-xl border px-3 py-2.5 ${slotStyle}`}>
+                        <p className="text-[12px]">{slot.type === "kegiatan" ? slot.activityLabel || "Kegiatan" : slot.type === "istirahat" ? "Istirahat" : "Non-Aktif"}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-2xl border border-hairline bg-surface md:block">
         <table className="w-full min-w-[720px] border-collapse text-left">
           <thead>
             <tr className="border-b border-hairline">
