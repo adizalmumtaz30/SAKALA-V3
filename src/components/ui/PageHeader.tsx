@@ -9,7 +9,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ kicker, title, description, action }: PageHeaderProps) {
   return (
-    <div className="flex items-start justify-between gap-4">
+    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
       <div>
         {kicker && (
           <p className="text-[10.5px] font-medium uppercase tracking-[0.14em] text-ink-faint">
@@ -23,7 +23,7 @@ export function PageHeader({ kicker, title, description, action }: PageHeaderPro
           <p className="mt-1.5 max-w-prose text-[13px] leading-relaxed text-ink-muted">{description}</p>
         )}
       </div>
-      {action && <div className="shrink-0 pt-0.5">{action}</div>}
+      {action && <div className="w-full shrink-0 pt-0.5 md:w-auto">{action}</div>}
     </div>
   );
 }
