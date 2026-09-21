@@ -1,7 +1,9 @@
-import type { ScheduleState, OptimizationResult, ScheduleCandidate, ObjectiveVector } from "@/lib/scheduling/types/schedule-state";
+import type { ScheduleState, OptimizationResult, ScheduleCandidate, ObjectiveVector, SlotPosition, CandidateMove } from "@/lib/scheduling/types/schedule-state";
 import { applyCandidate } from "./apply-candidate";
 import { generateMoveCandidates, generateSwapCandidates } from "./generate-candidates";
 import { scoreSchedule, compareObjective } from "./score-schedule";
+import { findConflicts } from "@/lib/application/schedule-conflict";
+import type { Day } from "@/lib/domain/time-structure";
 
 
 
@@ -90,7 +92,8 @@ function findRelocationChain(
 
   return null;
 }
-\nexport function optimizeSchedule(
+
+export function optimizeSchedule(
   initialState: ScheduleState,
   options: { maxIterations?: number } = {},
 ): OptimizationResult {
@@ -138,7 +141,7 @@ function findRelocationChain(
       ...generateSwapCandidates(state),
     ].sort((a, b) => compareObjective(a.objective, b.objective));
 
-    let best: ScheduleCandidate | undefined = candidates[0];
+    const best: ScheduleCandidate | undefined = candidates[0];
 
     // Depth-2 lookahead: a single move may keep the same gap count while
     // making a second move possible. This is the key case that defeated the
