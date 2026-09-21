@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { Drawer } from "@/components/ui/Drawer";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { SubjectBadge } from "@/components/entities/SubjectBadge";
+import { ClassBadge } from "@/components/entities/ClassBadge";
 import { ToggleStatusButton } from "@/components/master-data/ToggleStatusButton";
 import { toggleTeacherStatusAction } from "@/lib/application/master-data.actions";
 import { ATTENDANCE_STATUS_LABEL } from "@/lib/domain/attendance";
@@ -70,8 +72,9 @@ export function GuruDetailDrawer({
                   key={a.id}
                   className="flex items-center justify-between rounded-lg border border-hairline px-3 py-2"
                 >
-                  <span className="text-[12.5px] text-ink">
-                    {a.subjectName} — {a.className}
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <SubjectBadge name={a.subjectName} colorKey={a.subjectColorKey} />
+                    <ClassBadge name={a.className} />
                   </span>
                   <span className="text-[12px] text-ink-muted">
                     {a.targetJp} JP

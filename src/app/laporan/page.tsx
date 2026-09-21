@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { PrintButton } from "@/components/ui/PrintButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { IconLaporan } from "@/components/icons";
+import { TeacherBadge } from "@/components/entities/TeacherBadge";
 
 function firstDayOfMonth() {
   const now = new Date();
@@ -133,7 +134,7 @@ export default async function LaporanPage() {
           ) : (
             attendanceSummary.map((s) => (
               <div key={s.teacherId} className="px-4 py-2.5">
-                <p className="text-[13px] text-ink">{s.teacherName}</p>
+                <TeacherBadge name={s.teacherName} />
                 <p className="mt-0.5 text-[11.5px] text-ink-muted">
                   {Object.entries(ATTENDANCE_STATUS_LABEL)
                     .map(([key, label]) => `${label} ${s.counts[key as keyof typeof s.counts]}`)
