@@ -413,7 +413,7 @@ export function autoFillClassSchedule(input: {
       ),
       spreadPreference,
     },
-    { maxIterations: Math.max(100, placements.length * 8) },
+    { maxIterations: Math.max(100, placements.length * 8), allowInvalidInitialState: true },
   );
 
   const movedExistingEntries = optimized.state.entries.filter((entry) => {

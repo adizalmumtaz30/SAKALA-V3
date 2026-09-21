@@ -17,7 +17,6 @@ import { PerspectiveTabs } from "@/components/schedule/PerspectiveTabs";
 import { EntitySelect } from "@/components/schedule/EntitySelect";
 import { PrintButton } from "@/components/ui/PrintButton";
 import { AutoScheduleButton } from "@/components/schedule/AutoScheduleButton";
-import { RepairScheduleGapsButton } from "@/components/schedule/RepairScheduleGapsButton";
 
 type View = "kelas" | "guru" | "mapel" | "ruang";
 
@@ -154,7 +153,6 @@ export default async function JadwalPage({
                 className={selectedName}
               />
             )}
-            <RepairScheduleGapsButton academicYearId={academicYear.id} />
             <PrintButton label="Cetak Jadwal" />
             <Link
               href="/jadwal/struktur-waktu"
