@@ -115,21 +115,10 @@ export function optimizeSchedule(
   let movesAccepted = 0;
   let swapsAccepted = 0;
 
-  if (objective[0] > 0) {
-    return {
-      state,
-      initialObjective,
-      finalObjective: objective,
-      movesAccepted,
-      swapsAccepted,
-      iterations,
-      stoppedReason: "invalid-initial-state",
-      remainingShortfall: objective[1],
-      remainingInternalGaps: objective[2],
-      remainingConflicts: objective[0],
-    };
-  }
-
+  // Jadwal yang sudah tersimpan boleh membawa pelanggaran lama.
+  // Optimizer tetap berjalan: hard conflict tetap prioritas tertinggi,
+  // sehingga ia tidak boleh memperburuk konflik, tetapi masih dapat
+  // memperbaiki kualitas (termasuk internal gap) pada state yang ada.
   while (iterations < maxIterations) {
     if (objective[1] === 0 && objective[2] === 0) {
       return {
