@@ -51,8 +51,49 @@ export function optimizeSchedule(
       ...generateSwapCandidates(state),
     ].sort((a, b) => compareObjective(a.objective, b.objective));
 
-    const best = candidates[0];
+    let best: ScheduleCandidate | undefined = candidates[0];
+
+    // Depth-2 lookahead: a single move may keep the same gap count while
+    // making a second move possible. This is the key case that defeated the
+    // old repair pass (contoh: P3, P5, P6 -> P3, P4, P5 needs two moves).
     if (!best || compareObjective(best.objective, objective) >= 0) {
+      const neutral = [
+        ...generateMoveCandidates(state, { onlyImproving: false }),
+        ...generateSwapCandidates(state, { onlyImproving: false }),
+      ].filter((candidate) => compareObjective(candidate.objective, objective) >= 0);
+
+      let bestLookahead: { first: ScheduleCandidate; second: ScheduleCandidate; objective: ObjectiveVector } | undefined;
+
+      for (const first of neutral.slice(0, 250)) {
+        const intermediate = applyCandidate(state, first);
+        const secondCandidates = [
+          ...generateMoveCandidates(intermediate),
+          ...generateSwapCandidates(intermediate),
+        ];
+        for (const second of secondCandidates) {
+          if (!bestLookahead || compareObjective(second.objective, bestLookahead.objective) < 0) {
+            bestLookahead = { first, second, objective: second.objective };
+          }
+        }
+      }
+
+      if (bestLookahead && compareObjective(bestLookahead.objective, objective) < 0) {
+        // Execute the two contracts as two deterministic optimizer steps.
+        state = applyCandidate(state, bestLookahead.first);
+        objective = scoreSchedule(state);
+        if (bestLookahead.first.kind === "move") movesAccepted += 1;
+        else swapsAccepted += 1;
+        iterations += 1;
+        if (iterations >= maxIterations) break;
+
+        state = applyCandidate(state, bestLookahead.second);
+        objective = bestLookahead.objective;
+        if (bestLookahead.second.kind === "move") movesAccepted += 1;
+        else swapsAccepted += 1;
+        iterations += 1;
+        continue;
+      }
+
       return {
         state,
         initialObjective,
