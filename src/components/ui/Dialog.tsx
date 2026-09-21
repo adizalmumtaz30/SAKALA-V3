@@ -2,12 +2,13 @@
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ComponentProps, HTMLAttributes } from "react";
 import { cn } from "@/lib/cn";
 
 export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
-export function DialogContent({ className, children, ...props }: React.ComponentProps<typeof DialogPrimitive.Content>) {
+
+export function DialogContent({ className, children, ...props }: ComponentProps<typeof DialogPrimitive.Content>) {
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/45 backdrop-blur-[2px]" />
@@ -18,8 +19,21 @@ export function DialogContent({ className, children, ...props }: React.Component
     </DialogPrimitive.Portal>
   );
 }
-export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) { return <div {...props} className={cn("pr-8", className)} />; }
-export function DialogTitle(props: React.ComponentProps<typeof DialogPrimitive.Title>) { return <DialogPrimitive.Title {...props} className={cn("text-[16px] font-semibold tracking-tight text-ink", props.className)} />; }
-export function DialogDescription(props: React.ComponentProps<typeof DialogPrimitive.Description>) { return <DialogPrimitive.Description {...props} className={cn("mt-1.5 text-[13px] leading-5 text-ink-muted", props.className)} />; }
-export function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) { return <div {...props} className={cn("mt-5 flex items-center justify-end gap-2", className)} />; }
+
+export function DialogHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div {...props} className={cn("pr-8", className)} />;
+}
+
+export function DialogTitle(props: ComponentProps<typeof DialogPrimitive.Title>) {
+  return <DialogPrimitive.Title {...props} className={cn("text-[16px] font-semibold tracking-tight text-ink", props.className)} />;
+}
+
+export function DialogDescription(props: ComponentProps<typeof DialogPrimitive.Description>) {
+  return <DialogPrimitive.Description {...props} className={cn("mt-1.5 text-[13px] leading-5 text-ink-muted", props.className)} />;
+}
+
+export function DialogFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return <div {...props} className={cn("mt-5 flex items-center justify-end gap-2", className)} />;
+}
+
 export const DialogClose = DialogPrimitive.Close;
