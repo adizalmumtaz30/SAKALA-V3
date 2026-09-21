@@ -443,19 +443,29 @@ export async function autoFillScheduleAction(
   // lama tetap utuh. Mode fill-empty tetap hanya menambah slot baru.
   let placedCount = 0;
   if (mode === "full-week") {
-    placedCount = await replaceScheduleForClass(
-      supabase,
-      academicYearId,
-      classId,
-      placements.map((p) => ({
-        teachingAssignmentId: p.teachingAssignmentId,
-        teacherId: p.teacherId,
-        subjectId: p.subjectId,
-        classId: p.classId,
-        day: p.day,
-        periodNumber: p.periodNumber,
-      })),
-    );
+    try {
+      placedCount = await replaceScheduleForClass(
+        supabase,
+        academicYearId,
+        classId,
+        placements.map((p) => ({
+          teachingAssignmentId: p.teachingAssignmentId,
+          teacherId: p.teacherId,
+          subjectId: p.subjectId,
+          classId: p.classId,
+          day: p.day,
+          periodNumber: p.periodNumber,
+        })),
+      );
+    } catch (error) {
+      console.error("[jadwal-otomatis] full-week replace failed", error);
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        error:
+          "Jadwal Otomatis gagal menyimpan hasil. Jadwal lama tidak dihapus. Detail: " +
+          message,
+      };
+    }
   } else if (placements.length > 0) {
     const result = await createScheduleEntries(
       supabase,
