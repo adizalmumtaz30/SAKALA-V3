@@ -270,7 +270,7 @@ function validateOperation(
 
 function candidateMoves(state: ScheduleState, movableIds: Set<string>) {
   const slots = [...activeSlotsByDay(state.timeSlots).entries()].flatMap(([, values]) => values);
-  const occupied = new Set(state.entries.map((e) => `${e.day}__${e.periodNumber}`);
+  const occupied = new Set(state.entries.map((e) => `${e.day}__${e.periodNumber}`));
   const result: OptimizationOperation[] = [];
   for (const entry of state.entries) {
     if (entry.classId !== state.classId || isProtected(entry, movableIds)) continue;
@@ -348,7 +348,7 @@ export function optimizeSchedule(input: {
     if (!best) {
       return {
         entries: state.entries,
-        placements: syncPlacements(bestPlacements(input.placements, state.entries)),
+        placements: syncPlacements(input.placements, state.entries),
         initialObjective,
         finalObjective: currentObjective,
         movesAccepted,
@@ -377,21 +377,12 @@ export function optimizeSchedule(input: {
   };
 }
 
-function bestPlacements(placements: AutoFillPlacement[], entries: ScheduleEntry[]) {
-  return placements.map((placement) => {
-    const entry = entries.find(
-      (item) =>
-        item.id.startsWith("pending-") &&
-        item.teachingAssignmentId === placement.teachingAssignmentId &&
-        item.classId === placement.classId &&
-        item.source === "auto" &&
-        item.day === placement.day &&
-        item.periodNumber === placement.periodNumber,
-    );
-    return entry ? placement : placement;
+function syncPlacements(placements: AutoFillPlacement[], entries: ScheduleEntry[]) {
+  return placements.map((placement, index) => {
+    const pendingId = `pending-${index + 1}`;
+    const entry = entries.find((item) => item.id === pendingId);
+    return entry
+      ? { ...placement, day: entry.day as Day, periodNumber: entry.periodNumber }
+      : placement;
   });
-}
-
-function syncPlacements(placements: AutoFillPlacement[]) {
-  return placements;
 }
