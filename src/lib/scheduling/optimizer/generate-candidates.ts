@@ -7,10 +7,17 @@ function movable(state: ScheduleState, entry: ScheduleState["entries"][number]) 
   return entry.source === "auto" && !entry.locked && state.mutableEntryIds.has(entry.id);
 }
 
-function occupiedAt(state: ScheduleState, day: Day, periodNumber: number, ignoredIds: Set<string> = new Set()) {
+function classOccupiedAt(
+  state: ScheduleState,
+  classId: string,
+  day: Day,
+  periodNumber: number,
+  ignoredIds: Set<string> = new Set(),
+) {
   return state.entries.some(
     (entry) =>
       !ignoredIds.has(entry.id) &&
+      entry.classId === classId &&
       entry.day === day &&
       entry.periodNumber === periodNumber,
   );
@@ -25,7 +32,7 @@ function validEntryAt(state: ScheduleState, entry: ScheduleState["entries"][numb
       candidate.type === "mengajar",
   );
   if (!slot) return false;
-  if (occupiedAt(state, day, periodNumber, ignoredIds)) return false;
+  if (classOccupiedAt(state, entry.classId, day, periodNumber, ignoredIds)) return false;
 
   const conflicts = findConflicts(
     {
@@ -81,7 +88,7 @@ export function generateMoveCandidates(state: ScheduleState, options: { onlyImpr
 export function generateSwapCandidates(state: ScheduleState, options: { onlyImproving?: boolean } = {}): ScheduleCandidate[] {
   const base = scoreSchedule(state);
   const candidates: ScheduleCandidate[] = [];
-  const scopedMovableEntries = state.entries.filter((entry) => movable(state, entry) && entry.classId === state.scope.classId);
+  const scopedMovableEntries = state.entries.filter((entry) => movable(state, entry) && (state.scope.type === "full-week" || entry.classId === state.scope.classId));
   const allMovableEntries = scopedMovableEntries;
 
   for (let i = 0; i < scopedMovableEntries.length; i += 1) {

@@ -140,6 +140,7 @@ export interface AutoFillShortfall {
 export interface AutoFillResult {
   placements: AutoFillPlacement[];
   shortfalls: AutoFillShortfall[];
+  movedExistingEntries: ScheduleEntry[];
 }
 
 export function autoFillClassSchedule(input: {
@@ -404,12 +405,21 @@ export function autoFillClassSchedule(input: {
       assignments: input.assignments,
       timeSlots,
       maxConsecutiveJp,
-      scope: { type: "class", classId },
-      mutableEntryIds: new Set(placements.map((_, index) => `pending-${index + 1}`)),
+      scope: { type: "full-week", classId },
+      mutableEntryIds: new Set(
+        workingEntries
+          .filter((entry) => (entry.id.startsWith("pending-") || (entry.source === "auto" && !entry.locked)))
+          .map((entry) => entry.id),
+      ),
       spreadPreference,
     },
     { maxIterations: Math.max(100, placements.length * 8) },
   );
+
+  const movedExistingEntries = optimized.state.entries.filter((entry) => {
+    const original = input.existingEntries.find((item) => item.id === entry.id);
+    return original && (original.day !== entry.day || original.periodNumber !== entry.periodNumber);
+  });
 
   // Hanya placement yang memang dibuat oleh run ini yang dipersist.
   // Existing/manual/locked tidak pernah ikut berubah dari optimizer.
@@ -435,5 +445,5 @@ export function autoFillClassSchedule(input: {
     seenPositions.add(key);
   }
 
-  return { placements, shortfalls };
+  return { placements, shortfalls, movedExistingEntries };
 }

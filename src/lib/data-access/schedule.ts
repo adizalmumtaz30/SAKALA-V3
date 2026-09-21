@@ -181,3 +181,28 @@ export async function moveScheduleEntry(
   }
   throw error;
 }
+
+
+export interface SchedulePositionUpdate {
+  id: string;
+  day: string;
+  periodNumber: number;
+}
+
+/**
+ * Persists a set of optimizer moves in one database transaction.
+ * The SQL function temporarily moves affected rows out of the way so
+ * swaps/cycles cannot collide with the UNIQUE class/teacher constraints.
+ */
+export async function applySchedulePositionUpdates(
+  supabase: SupabaseClient,
+  updates: SchedulePositionUpdate[],
+  academicYearId: string,
+): Promise<void> {
+  if (updates.length === 0) return;
+  const { error } = await supabase.rpc("apply_schedule_position_updates", {
+    p_academic_year_id: academicYearId,
+    p_updates: updates,
+  });
+  if (error) throw error;
+}
