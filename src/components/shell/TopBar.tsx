@@ -1,4 +1,4 @@
-import { User } from "lucide-react";
+import { Menu, User } from "lucide-react";
 import type { School } from "@/lib/domain/school";
 import type { AcademicYear } from "@/lib/domain/academic-year";
 import { AcademicContextTrigger } from "@/components/shell/AcademicContextTrigger";
@@ -38,14 +38,14 @@ function SystemStatus({
 
 export function TopBar({ school, academicYear, academicYears }: TopBarProps) {
   return (
-    <header className="relative flex h-16 shrink-0 items-center gap-6 border-b border-hairline bg-canvas px-6">
-      {/* School Identity */}
-      <div className="flex items-center gap-3">
+    <header className="relative flex h-16 shrink-0 items-center gap-3 border-b border-hairline bg-canvas px-4 md:gap-6 md:px-6">
+      <button\n        type="button"\n        aria-label="Buka navigasi"\n        className="rounded-lg p-2 text-ink-muted hover:text-ink md:hidden"\n        onClick={() => window.dispatchEvent(new Event("sakala:open-mobile-nav"))}\n      >\n        <Menu size={19} strokeWidth={1.8} />\n      </button>\n\n      {/* School Identity */}
+      <div className="flex min-w-0 items-center gap-3">
         <div className="flex h-8 w-8 items-center justify-center rounded-[9px] border border-hairline-strong bg-surface text-[12px] font-medium text-ink-muted">
           {(school?.shortName ?? school?.schoolName ?? "S").slice(0, 1)}
         </div>
         <div className="flex flex-col leading-tight">
-          <span className="text-[13px] font-medium text-ink">
+          <span className="truncate text-[13px] font-medium text-ink md:max-w-none">
             {school?.schoolName ?? "Sekolah belum diatur"}
           </span>
           <span className="text-[10.5px] text-ink-faint">
@@ -54,10 +54,10 @@ export function TopBar({ school, academicYear, academicYears }: TopBarProps) {
         </div>
       </div>
 
-      <div className="h-6 w-px bg-hairline" />
+      <div className="hidden h-6 w-px bg-hairline md:block" />
 
       {/* Academic Year Context */}
-      {school && (
+      <div className="hidden md:block">\n      {school && (
         <AcademicContextTrigger
           schoolId={school.id}
           academicYear={academicYear}
@@ -66,14 +66,14 @@ export function TopBar({ school, academicYear, academicYears }: TopBarProps) {
       )}
 
       {/* Bagian F.3 — pintu masuk Command Palette (Ctrl/Cmd+K). */}
-      <div className="flex flex-1 justify-center">
+      <div className="min-w-0 flex flex-1 justify-center md:justify-center">
         <SearchTrigger />
       </div>
 
       <SystemStatus school={school} academicYear={academicYear} />
 
       {/* Admin Human Identity — placeholder pending Premium Avatar System */}
-      <div className="flex items-center gap-2 rounded-full border border-hairline bg-surface py-1 pl-1 pr-3">
+      <div className="hidden items-center gap-2 rounded-full border border-hairline bg-surface py-1 pl-1 pr-3 md:flex">
         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-surface-elevated text-ink-muted">
           <User size={13} strokeWidth={1.75} />
         </div>
