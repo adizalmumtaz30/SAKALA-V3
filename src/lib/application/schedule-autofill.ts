@@ -43,25 +43,42 @@ import { DAYS } from "@/lib/domain/time-structure";
  * C.2: "distribusi, gap, beban, konsistensi" — secara eksplisit LEBIH
  * TINGGI prioritasnya daripada slider Pemetaan/Persebaran di bawah, yang
  * cuma LEVEL 3 PREFERENCE). Ditambahkan setelah operator melaporkan
- * "lompat jam" nyata: Kelas IX_A hari Jumat terisi jam ke-3 lalu lompat ke
- * jam ke-8, jam 4-7 kosong — dan Senin-Rabu penuh sampai jam ke-9
- * sementara Kamis-Sabtu cuma sampai jam ke-3.
+ * "lompat jam" nyata, lalu DISEMPURNAKAN lagi setelah dilaporkan lubang
+ * masih muncul di data sungguhan: simulasi awal cuma pakai 1 kelas kosong
+ * tanpa guru yang sudah sibuk di kelas lain — di dunia nyata guru
+ * mengajar BANYAK kelas, jadi slot "ideal" sering kebentur jadwal guru
+ * itu di kelas lain.
  *
- * Dua sinyal BARU dihitung di tingkat KELAS (lintas semua assignment
- * kelas itu, bukan per-assignment seperti continuity di atas):
- *  1. FRONTIER — slot yang melanjutkan pengisian dari depan tanpa
- *     lubang (period_number = jam terakhir yang sudah terisi kelas itu
- *     pada hari itu + 1, atau jam ke-1 kalau hari itu masih kosong)
- *     SELALU dicoba lebih dulu daripada slot yang meninggalkan/membuat
- *     lubang.
- *  2. BEBAN HARIAN — di antara slot yang sama-sama frontier, hari yang
- *     JP-nya masih lebih sedikit didahulukan, supaya minggu terisi rata
- *     (bukan Senin-Rabu penuh dulu baru sisanya ke Kamis-Sabtu).
+ * RUMUS SKALA PRIORITAS JP HARIAN (target eksplisit, bukan cuma
+ * "hari paling kosong menang"):
+ *   idealPerHari = totalJpMingguan / jumlahHariMengajarAktif
+ * Tiap hari diklasifikasi relatif ke idealPerHari itu:
+ *   CUKUP  (band 0) — terisi < idealPerHari (dibulatkan bawah)
+ *   SEDANG (band 1) — terisi di sekitar idealPerHari
+ *   PENUH  (band 2) — terisi > idealPerHari (dibulatkan atas)
+ * Dihitung DUA KALI dengan basis beda, digabung (dijumlah):
+ *   1. Basis KELAS — totalJp = jumlah targetJp semua Beban Mengajar
+ *      kelas yang sedang diisi.
+ *   2. Basis GURU — totalJp = jumlah targetJp SEMUA Beban Mengajar guru
+ *      itu DI SELURUH SEKOLAH (lintas kelas lain, bukan cuma kelas yang
+ *      sedang diisi), dan terisi-nya dibaca dari existingEntries yang
+ *      juga lintas kelas (data terkini, bukan snapshot lama) — supaya
+ *      "Guru A 12 JP/minggu" tidak berakhir 6+6 di 2 hari cuma karena
+ *      kelas ini kebetulan cocok di situ, walau di kelas lain guru itu
+ *      sebenarnya sudah punya jam di hari-hari lain juga.
  *
- * Sama seperti continuity & spread: ini PREFERENSI URUTAN, bukan blok
- * keras — kalau satu-satunya slot yang lolos findConflicts() kebetulan
- * bukan frontier, tetap dipakai daripada gagal total (VALID tetap di
- * atas segalanya).
+ * Dua sinyal LAMA dari FRONTIER & beban-per-kelas-mentah digabung/
+ * digantikan rumus band di atas; frontier (larangan lompat dalam satu
+ * hari) TETAP tier tertinggi karena itu keluhan paling kentara ("bolong"
+ * di tengah hari) — band dipakai untuk memilih HARI mana yang
+ * diprioritaskan di antara pilihan yang sama-sama frontier.
+ *
+ * BATASAN JUJUR: ini tetap preferensi urutan (greedy per-assignment),
+ * bukan solver yang menjamin nol lubang mutlak. Kalau satu-satunya slot
+ * yang lolos findConflicts() untuk assignment tertentu kebetulan bukan
+ * frontier (mis. gurunya cuma longgar di jam itu di seluruh minggu),
+ * lubang kecil masih mungkin muncul — VALIDITY tetap di atas segalanya,
+ * auto-fill tidak boleh gagal total cuma demi kerapihan sempurna.
  *
  * PEMETAAN & PERSEBARAN (LOCK 10, master spec — "Generator operator-facing
  * pakai Pemetaan + Persebaran") — satu slider 3-posisi yang operator lihat
@@ -76,11 +93,23 @@ import { DAYS } from "@/lib/domain/time-structure";
  * URUTAN PRIORITAS lengkap tiap kandidat slot (tinggi ke rendah):
  *   VALIDITY (findConflicts, tidak bisa dilewati)
  *   > FRONTIER (tidak membuat lubang)
- *   > BEBAN HARIAN (hari lebih kosong didahulukan)
+ *   > BAND HARIAN gabungan kelas+guru (rumus idealPerHari di atas)
  *   > continuity/spread assignment ini (slider Pemetaan & Persebaran)
  */
 
 export type SpreadPreference = "concentrated" | "balanced" | "spread";
+
+/**
+ * Rumus skala prioritas JP harian — lihat dokumentasi di atas.
+ * band 0 = CUKUP (masih longgar), 1 = SEDANG (pas target), 2 = PENUH
+ * (sudah lewat target, jangan ditambah lagi kalau ada pilihan lain).
+ */
+function dayBand(current: number, idealPerDay: number): 0 | 1 | 2 {
+  if (idealPerDay <= 0) return current === 0 ? 0 : 2;
+  if (current < Math.floor(idealPerDay)) return 0;
+  if (current <= Math.ceil(idealPerDay)) return 1;
+  return 2;
+}
 
 export interface AutoFillPlacement {
   teachingAssignmentId: string;
@@ -134,6 +163,35 @@ export function autoFillClassSchedule(input: {
         DAYS.indexOf(a.day as Day) - DAYS.indexOf(b.day as Day) ||
         a.periodNumber - b.periodNumber,
     );
+
+  // §Rumus skala prioritas JP harian — jumlah hari mengajar aktif jadi
+  // penyebut idealPerHari (lihat dokumentasi di atas).
+  const availableDays = new Set(teachingSlots.map((s) => s.day as Day)).size || 1;
+
+  const classIdealPerDay =
+    classAssignments.reduce((sum, a) => sum + a.targetJp, 0) / availableDays;
+
+  // Basis GURU dihitung dari input.assignments TANPA filter classId —
+  // lintas kelas lain di seluruh sekolah — dan totalnya HANYA dari
+  // assignment aktif, konsisten dengan classAssignments di atas.
+  const teacherWeeklyTotal = new Map<string, number>();
+  for (const a of input.assignments) {
+    if (a.status !== "active") continue;
+    teacherWeeklyTotal.set(a.teacherId, (teacherWeeklyTotal.get(a.teacherId) ?? 0) + a.targetJp);
+  }
+  const teacherIdealPerDay = (teacherId: string) =>
+    (teacherWeeklyTotal.get(teacherId) ?? 0) / availableDays;
+
+  // teacherDayCount: beban guru per hari SAAT INI, dibaca dari
+  // existingEntries TANPA filter classId — data live lintas kelas, bukan
+  // snapshot kelas yang sedang diisi saja ("integrasikan data dengan
+  // jadwal yang sudah ada", sesuai permintaan eksplisit).
+  const teacherDayCount = new Map<string, Map<Day, number>>();
+  for (const e of input.existingEntries) {
+    const perDay = teacherDayCount.get(e.teacherId) ?? new Map<Day, number>();
+    perDay.set(e.day as Day, (perDay.get(e.day as Day) ?? 0) + 1);
+    teacherDayCount.set(e.teacherId, perDay);
+  }
 
   // Slot kelas ini yang sudah terisi — tidak pernah disentuh (aturan "a").
   const occupiedByThisClass = new Set(
@@ -210,12 +268,20 @@ export function autoFillClassSchedule(input: {
         const frontierB = b.periodNumber === (classDayMax.get(b.day as Day) ?? 0) + 1 ? 0 : 1;
         if (frontierA !== frontierB) return frontierA - frontierB;
 
-        // TIER 1 — beban harian: di antara slot yang sama-sama frontier,
-        // hari yang JP-nya masih lebih sedikit didahulukan (minggu terisi
-        // rata, bukan Senin-Rabu penuh dulu baru Kamis-Sabtu).
-        const loadA = classDayCount.get(a.day as Day) ?? 0;
-        const loadB = classDayCount.get(b.day as Day) ?? 0;
-        if (loadA !== loadB) return loadA - loadB;
+        // TIER 1 — band harian gabungan (rumus idealPerHari): di antara
+        // slot yang sama-sama frontier, hari yang bandnya lebih rendah
+        // (lebih longgar) didahulukan — dihitung dari basis KELAS *dan*
+        // basis GURU (lintas kelas lain), dijumlah supaya keduanya
+        // dipertimbangkan bersama.
+        const classBandA = dayBand(classDayCount.get(a.day as Day) ?? 0, classIdealPerDay);
+        const classBandB = dayBand(classDayCount.get(b.day as Day) ?? 0, classIdealPerDay);
+        const teacherDayA = teacherDayCount.get(assignment.teacherId)?.get(a.day as Day) ?? 0;
+        const teacherDayB = teacherDayCount.get(assignment.teacherId)?.get(b.day as Day) ?? 0;
+        const teacherBandA = dayBand(teacherDayA, teacherIdealPerDay(assignment.teacherId));
+        const teacherBandB = dayBand(teacherDayB, teacherIdealPerDay(assignment.teacherId));
+        const bandA = classBandA + teacherBandA;
+        const bandB = classBandB + teacherBandB;
+        if (bandA !== bandB) return bandA - bandB;
 
         // TIER 2/3 — Pemetaan & Persebaran (slider), khusus assignment ini.
         const contA = isContinuity(a) ? 0 : 1;
@@ -296,6 +362,10 @@ export function autoFillClassSchedule(input: {
           Math.max(classDayMax.get(slot.day as Day) ?? 0, slot.periodNumber),
         );
         classDayCount.set(slot.day as Day, (classDayCount.get(slot.day as Day) ?? 0) + 1);
+
+        const teacherPerDay = teacherDayCount.get(assignment.teacherId) ?? new Map<Day, number>();
+        teacherPerDay.set(slot.day as Day, (teacherPerDay.get(slot.day as Day) ?? 0) + 1);
+        teacherDayCount.set(assignment.teacherId, teacherPerDay);
 
         remaining -= 1;
         filledThisRun += 1;
