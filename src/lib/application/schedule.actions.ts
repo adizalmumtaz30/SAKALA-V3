@@ -448,6 +448,7 @@ export async function autoFillScheduleAction(
         day: entry.day,
         periodNumber: entry.periodNumber,
       })),
+      academicYearId,
     );
   }
 
