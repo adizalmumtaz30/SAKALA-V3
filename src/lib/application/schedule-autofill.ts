@@ -406,6 +406,7 @@ export function autoFillClassSchedule(input: {
       maxConsecutiveJp,
       scope: { type: "class", classId },
       mutableEntryIds: new Set(placements.map((_, index) => `pending-${index + 1}`)),
+      spreadPreference,
     },
     { maxIterations: Math.max(100, placements.length * 8) },
   );
