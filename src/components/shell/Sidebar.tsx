@@ -97,9 +97,9 @@ function NavRowLink({ item, active, collapsed }: { item: NavItem; active: boolea
     <Link
       href={item.href}
       className={cn(
-        "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] transition-colors duration-150",
+        "group relative flex min-h-9 items-center gap-3 rounded-lg px-3 py-2 text-[13.5px] transition-colors duration-150",
         collapsed && "justify-center px-0",
-        active ? "text-ink" : "text-ink-muted hover:text-ink",
+        active ? "bg-surface/70 text-ink" : "text-ink-muted hover:bg-surface/40 hover:text-ink",
       )}
     >
       <span
@@ -174,7 +174,7 @@ export function Sidebar({ hasAttention }: { hasAttention?: boolean }) {
     <aside
       className={cn(
         "relative hidden h-dvh shrink-0 flex-col overflow-hidden border-r border-hairline bg-sidebar transition-[width] duration-200 md:flex",
-        collapsed ? "w-[68px]" : "w-[248px]",
+        collapsed ? "w-[var(--shell-sidebar-collapsed)]" : "w-[var(--shell-sidebar-expanded)]",
       )}
     >
       {/* Digital Heritage Layer — Mega Mendung di pojok bawah sidebar
@@ -233,7 +233,13 @@ export function Sidebar({ hasAttention }: { hasAttention?: boolean }) {
           </div>
         </div>
 
-        <div className="space-y-0.5">
+        <div>
+          {!collapsed && (
+            <div className="px-3 pb-1.5 text-[10.5px] font-medium tracking-wide text-ink-faint">
+              OPERASIONAL
+            </div>
+          )}
+          <div className="space-y-0.5">
           {OPERATIONAL_ITEMS.map((item) => (
             <div key={item.href}>
               <NavRow
@@ -274,6 +280,7 @@ export function Sidebar({ hasAttention }: { hasAttention?: boolean }) {
               </span>
             </div>
           )}
+          </div>
         </div>
       </nav>
 
