@@ -48,7 +48,7 @@ function validEntryAt(state: ScheduleState, entry: ScheduleState["entries"][numb
 export function generateMoveCandidates(state: ScheduleState): ScheduleCandidate[] {
   const base = scoreSchedule(state);
   const candidates: ScheduleCandidate[] = [];
-  const movableEntries = state.entries.filter(movable);
+  const movableEntries = state.entries.filter((entry) => movable(entry) && entry.classId === state.scope.classId);
   const teachingSlots = state.timeSlots.filter(
     (slot) => slot.status === "active" && slot.type === "mengajar",
   );
@@ -81,13 +81,14 @@ export function generateMoveCandidates(state: ScheduleState): ScheduleCandidate[
 export function generateSwapCandidates(state: ScheduleState): ScheduleCandidate[] {
   const base = scoreSchedule(state);
   const candidates: ScheduleCandidate[] = [];
-  const movableEntries = state.entries.filter(movable);
+  const scopedMovableEntries = state.entries.filter((entry) => movable(entry) && entry.classId === state.scope.classId);
+  const allMovableEntries = state.entries.filter(movable);
 
-  for (let i = 0; i < movableEntries.length; i += 1) {
-    for (let j = i + 1; j < movableEntries.length; j += 1) {
-      const first = movableEntries[i];
-      const second = movableEntries[j];
-      if (first.id === second.id) continue;
+  for (let i = 0; i < scopedMovableEntries.length; i += 1) {
+    for (let j = 0; j < allMovableEntries.length; j += 1) {
+      const first = scopedMovableEntries[i];
+      const second = allMovableEntries[j];
+      if (!first || first.id === second.id) continue;
       if (first.day === second.day && first.periodNumber === second.periodNumber) continue;
 
       const nextEntries = state.entries.map((entry) => {
