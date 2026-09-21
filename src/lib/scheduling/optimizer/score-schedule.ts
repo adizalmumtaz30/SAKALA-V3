@@ -127,6 +127,22 @@ function subjectDistribution(state: ScheduleState): number {
   return penalty;
 }
 
+function preferencePenalty(state: ScheduleState): number {
+  const scoped = scopedEntries(state);
+  let penalty = 0;
+  for (const assignment of state.assignments.filter((a) => a.status === "active" && a.classId === state.scope.classId)) {
+    const days = new Set(scoped.filter((entry) => entry.teachingAssignmentId === assignment.id).map((entry) => entry.day));
+    if (state.spreadPreference === "concentrated") penalty += Math.max(0, days.size - 1);
+    else if (state.spreadPreference === "spread") penalty += Math.max(0, assignment.targetJp - days.size);
+    else {
+      const activeDays = new Set(teachingSlots(state).map((slot) => slot.day)).size || 1;
+      const idealDays = Math.min(activeDays, Math.max(1, Math.ceil(assignment.targetJp / Math.max(1, Math.ceil(assignment.targetJp / activeDays)))));
+      penalty += Math.abs(days.size - idealDays);
+    }
+  }
+  return penalty;
+}
+
 function teacherDistribution(state: ScheduleState): number {
   let penalty = 0;
   for (const teacherId of new Set(state.entries.map((e) => e.teacherId))) {
@@ -150,7 +166,7 @@ export function scoreSchedule(state: ScheduleState): ObjectiveVector {
     dailyImbalance(state),
     subjectDistribution(state),
     teacherDistribution(state),
-    0,
+    preferencePenalty(state),
   ];
 }
 
