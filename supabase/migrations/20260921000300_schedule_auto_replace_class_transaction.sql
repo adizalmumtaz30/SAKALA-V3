@@ -75,5 +75,5 @@ begin
 end;
 $$;
 
-revoke all on function public.replace_schedule_for_class(uuid, uuid, jsonb) from public;
+revoke all on function public.replace_schedule_for_class(uuid, uuid, jsonb) from public, anon;
 grant execute on function public.replace_schedule_for_class(uuid, uuid, jsonb) to authenticated;
