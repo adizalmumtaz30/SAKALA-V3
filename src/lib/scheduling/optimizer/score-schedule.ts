@@ -134,11 +134,7 @@ function preferencePenalty(state: ScheduleState): number {
     const days = new Set(scoped.filter((entry) => entry.teachingAssignmentId === assignment.id).map((entry) => entry.day));
     if (state.spreadPreference === "concentrated") penalty += Math.max(0, days.size - 1);
     else if (state.spreadPreference === "spread") penalty += Math.max(0, assignment.targetJp - days.size);
-    else {
-      const activeDays = new Set(teachingSlots(state).map((slot) => slot.day)).size || 1;
-      const idealDays = Math.min(activeDays, Math.max(1, Math.ceil(assignment.targetJp / Math.max(1, Math.ceil(assignment.targetJp / activeDays)))));
-      penalty += Math.abs(days.size - idealDays);
-    }
+    // balanced is intentionally neutral here; the generator already balances day usage.
   }
   return penalty;
 }
