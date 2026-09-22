@@ -1,3 +1,5 @@
+"use client";
+
 import { Menu, User } from "lucide-react";
 import type { School } from "@/lib/domain/school";
 import type { AcademicYear } from "@/lib/domain/academic-year";
