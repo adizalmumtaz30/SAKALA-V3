@@ -3,8 +3,6 @@ import { DAYS } from "@/lib/domain/time-structure";
 import type { Day, TimeSlot } from "@/lib/domain/time-structure";
 import type { ScheduleState, ObjectiveVector } from "@/lib/scheduling/types/schedule-state";
 
-const slotKey = (day: string, period: number) => `${day}__${period}`;
-
 function teachingSlots(state: ScheduleState): TimeSlot[] {
   return state.timeSlots.filter(
     (slot) => slot.status === "active" && slot.type === "mengajar",
