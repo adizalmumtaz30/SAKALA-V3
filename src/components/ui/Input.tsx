@@ -18,8 +18,8 @@ export function Input({ className, leadingIcon, trailingAction, error, ...props 
           "sakala-focus-ring h-9 w-full rounded-lg border bg-surface px-3 text-[13px] text-ink outline-none placeholder:text-ink-faint",
           "border-hairline-strong transition-colors duration-150 hover:border-hairline-strong focus:border-accent-teal",
           "disabled:cursor-not-allowed disabled:bg-surface/50 disabled:opacity-55",
-          leadingIcon && "pl-9",
-          trailingAction && "pr-10",
+          Boolean(leadingIcon) && "pl-9",
+          Boolean(trailingAction) && "pr-10",
           error && "border-status-blocked focus:border-status-blocked",
           className,
         )}

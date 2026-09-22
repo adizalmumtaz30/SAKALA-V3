@@ -151,7 +151,7 @@ export function optimizeSchedule(
       ...generateSwapCandidates(state),
     ].sort((a, b) => compareObjective(a.objective, b.objective));
 
-    let best: ScheduleCandidate | undefined = candidates[0];
+    const best: ScheduleCandidate | undefined = candidates[0];
 
     // Depth-2 lookahead: a single move may keep the same gap count while
     // making a second move possible. This is the key case that defeated the
