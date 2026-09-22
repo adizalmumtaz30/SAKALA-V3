@@ -1,3 +1,5 @@
+"use client";
+
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
 export function Pagination({ page, pageCount, onPageChange, total, from, to, className }: { page:number; pageCount:number; onPageChange:(page:number)=>void; total?:number; from?:number; to?:number; className?:string }) {
