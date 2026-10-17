@@ -1,0 +1,13 @@
+name = "signal-mt"
+compatibility_date = "2026-10-01"
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "signal-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+# Buat database dengan: npx wrangler d1 create signal-db
+# lalu salin database_id ke sini. Jalankan:
+#   npx wrangler d1 migrations apply DB --local   (dev)
+#   npx wrangler d1 migrations apply DB --remote  (production)
+migrations_dir = "migrations"
